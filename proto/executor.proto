@@ -1,0 +1,42 @@
+syntax = "proto3";
+
+package executor;
+
+message ExecutorInfo {
+  string executor_id = 1;
+  string hostname = 2;
+  int32 port = 3;
+  bool connected = 4;
+}
+
+message HeartbeatResponse{
+  string executor_id = 1;
+}
+
+message TaskInfo {
+  string task_id = 1;
+  string command = 2;
+  repeated string arguments = 3;
+  map<string, string> environment = 4;
+  string working_directory = 5;
+  int32 cpu = 6;
+  int32 memory = 7;
+  int32 disk = 8;
+}
+
+message LaunchTaskRequest {
+  string executor_id = 1;
+  TaskInfo task_info = 2;
+}
+
+message KillTaskRequest {
+  string task_id = 1;
+}
+
+message Empty{}
+
+service GinExecutorService {
+  rpc Heartbeat(Empty) returns (HeartbeatResponse) {}
+  rpc LaunchTask(LaunchTaskRequest) returns (Empty) {}
+  rpc KillTask(KillTaskRequest) returns (Empty) {}
+}

@@ -1,0 +1,66 @@
+syntax = "proto3";
+package scheduler;
+
+// Message for requesting the status of all connected executors
+message CheckExecutorsRequest {
+}
+
+// Message for responding to the executor status request
+message CheckExecutorsResponse {
+  // Map of executor URIs to boolean values indicating whether the executor is connected
+  map<string, bool> executor_status = 1;
+}
+
+message ExecutionGraph {
+    repeated Stage stages = 1;
+}
+
+message Stage {
+    string id = 1;
+    oneof stage_type {
+        Action action = 2;
+        Transformation transformation = 3;
+    }
+    repeated string dependencies = 4;
+}
+
+message Action {
+    string command = 1;
+    repeated string args = 2;
+}
+
+message Transformation {
+    string command = 1;
+    repeated string args = 2;
+}
+
+service GinSchedulerService {
+    rpc RegisterExecutor(RegisterExecutorRequest) returns (RegisterExecutorResponse) {}
+    rpc UnregisterExecutor(UnregisterExecutorRequest) returns (UnregisterExecutorResponse) {}
+    rpc SubmitJob(SubmitJobRequest) returns (SubmitJobResponse) {}
+    rpc check_executors(CheckExecutorsRequest) returns (CheckExecutorsResponse);
+}
+
+message RegisterExecutorRequest {
+    string executor_uri = 1;
+}
+
+message RegisterExecutorResponse {
+    bool success = 1;
+}
+
+message UnregisterExecutorRequest {
+    string executor_uri = 1;
+}
+
+message UnregisterExecutorResponse {
+    bool success = 1;
+}
+
+message SubmitJobRequest {
+    ExecutionGraph execution_graph = 1;
+}
+
+message SubmitJobResponse {
+    bool success = 1;
+}
