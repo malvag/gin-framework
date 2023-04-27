@@ -2,7 +2,7 @@
 name = "gin"
 version = "0.0.1"
 authors = ["Evangelos Maliaroudakis", "Giannis Melidonis", "Alexandra Alexandridi"]
-edition = "2018"
+edition = "2021"
 
 
 [dependencies]
