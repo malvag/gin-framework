@@ -16,6 +16,8 @@ use crate::scheduler::proto::{RegisterExecutorResponse,UnregisterExecutorRespons
 
 use std::sync::atomic::{AtomicUsize, Ordering};
 
+use super::proto::stage::StageType;
+
 pub struct IdGenerator {
     next_id: AtomicUsize,
 }
@@ -145,7 +147,24 @@ impl GinSchedulerService for Scheduler {
         &self,
         _request: Request<SubmitJobRequest>,
     ) -> Result<Response<SubmitJobResponse>, Status> {
-        todo!()
+        let graph =  &_request.get_ref().plan;
+        
+        for stage in graph.iter() {
+            match &stage.stage_type {
+                Some(StageType::Action(method_type)) => {
+                    info!("action {}", method_type);
+                },
+                Some(StageType::Filter(method_type)) => {
+                    info!("filter");
+                },
+                Some(StageType::Select(method_type)) => {
+                    info!("select");
+                },
+                None => info!("No valid method"),
+            }
+        }
+        todo!();
+        // todo!()
     }
 
     async fn check_executors(

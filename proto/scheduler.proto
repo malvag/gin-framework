@@ -11,27 +11,28 @@ message CheckExecutorsResponse {
   map<string, bool> executor_status = 1;
 }
 
-message ExecutionGraph {
-    repeated Stage stages = 1;
+enum ActionType {
+    Sum = 0;
+    Count = 1;
+    Collect = 2;
 }
 
 message Stage {
     string id = 1;
     oneof stage_type {
-        Action action = 2;
-        Transformation transformation = 3;
+        Filter filter = 2;
+        Select select = 3;
+        ActionType action = 4;
     }
-    repeated string dependencies = 4;
+    // repeated string dependencies = 7;
 }
 
-message Action {
-    string command = 1;
-    repeated string args = 2;
+message Filter {
+    bytes predicate = 1;
 }
 
-message Transformation {
-    string command = 1;
-    repeated string args = 2;
+message Select {
+    repeated string columns = 1;
 }
 
 service GinSchedulerService {
@@ -58,9 +59,11 @@ message UnregisterExecutorResponse {
 }
 
 message SubmitJobRequest {
-    ExecutionGraph execution_graph = 1;
+    repeated Stage plan = 1;
+    string dataset_uri = 2;
 }
 
 message SubmitJobResponse {
     bool success = 1;
+    bytes result = 2;
 }
