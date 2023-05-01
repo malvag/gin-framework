@@ -1,12 +1,12 @@
 use crate::GinContext;
-use futures::future::poll_fn;
+
 use gin::scheduler::proto::{
-    gin_scheduler_service_client::GinSchedulerServiceClient, SubmitJobRequest,SubmitJobResponse
+    SubmitJobRequest
 };
 use gin::scheduler::proto::{ActionType, Filter, Select, Stage};
 use log::debug;
-use log::error;
-use prost::encoding::bytes;
+
+
 use std::fmt::Debug;
 use std::mem;
 use futures::executor::block_on;
@@ -116,7 +116,7 @@ impl<T: Debug + Clone> DataFrame<T> {
         let mut stage_vec: Vec<Stage> = Vec::new();
         let mut index = 0;
         for node in self.plan.iter() {
-            let mut stage: Stage;
+            let stage: Stage;
             match node {
                 Methods::Collect => {
                     debug!("Methods:Collect");
@@ -179,7 +179,7 @@ impl<T: Debug + Clone> DataFrame<T> {
                 let result: f64 = serde_cbor::from_slice(&response.into_inner().result).unwrap();
                 result
             },
-            Err(status) =>{ 
+            Err(_status) =>{ 
                 panic!("Submit job failed");
             }
         }

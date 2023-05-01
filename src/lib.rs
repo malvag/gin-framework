@@ -3,7 +3,7 @@ pub mod scheduler;
 
 use scheduler::proto::Stage;
 
-use std::collections::{HashMap, VecDeque};
+
 
 pub struct Application {
     jobs: Vec<Job>,

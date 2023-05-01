@@ -154,10 +154,10 @@ impl GinSchedulerService for Scheduler {
                 Some(StageType::Action(method_type)) => {
                     info!("action {}", method_type);
                 },
-                Some(StageType::Filter(method_type)) => {
+                Some(StageType::Filter(_method_type)) => {
                     info!("filter");
                 },
-                Some(StageType::Select(method_type)) => {
+                Some(StageType::Select(_method_type)) => {
                     info!("select");
                 },
                 None => info!("No valid method"),

@@ -1,19 +1,18 @@
 use crate::executor::proto::{
-    gin_executor_service_server::GinExecutorService,
-    gin_executor_service_server::GinExecutorServiceServer, Empty, ExecutorInfo, HeartbeatResponse,
-    KillTaskRequest, LaunchTaskRequest, TaskInfo,
+    gin_executor_service_server::GinExecutorService, Empty, ExecutorInfo, HeartbeatResponse,
+    KillTaskRequest, LaunchTaskRequest,
 };
 use crate::scheduler::proto::gin_scheduler_service_client::GinSchedulerServiceClient;
 use crate::scheduler::proto::RegisterExecutorRequest;
 use futures::executor::block_on;
-use log::debug;
-use log::error;
+
+
 use log::info;
-use log::warn;
-use tokio::sync::mpsc;
-use tokio::time::Duration;
-use tonic::codegen::http::request;
-use tonic::{transport::Server, Request, Response, Status};
+
+
+
+
+use tonic::{Request, Response, Status};
 #[derive(Debug)]
 pub struct GinExecutor {
     id: String,
@@ -73,7 +72,7 @@ impl GinExecutor {
         &mut self,
         request: Request<LaunchTaskRequest>,
     ) -> Result<Response<Empty>, Status> {
-        let task_info = request.into_inner().task_info;
+        let _task_info = request.into_inner().task_info;
         // Implement launching of task
         Ok(Response::new(Empty {}))
     }
@@ -82,7 +81,7 @@ impl GinExecutor {
         &mut self,
         request: Request<KillTaskRequest>,
     ) -> Result<Response<Empty>, Status> {
-        let task_id = request.into_inner().task_id;
+        let _task_id = request.into_inner().task_id;
         // Implement killing of task
         Ok(Response::new(Empty {}))
     }
@@ -100,7 +99,7 @@ impl GinExecutorService for GinExecutor {
 
     async fn launch_task(
         &self,
-        request: Request<LaunchTaskRequest>,
+        _request: Request<LaunchTaskRequest>,
     ) -> Result<Response<Empty>, Status> {
         // self._launch_task(request).await
         info!("Task launched");
@@ -109,7 +108,7 @@ impl GinExecutorService for GinExecutor {
 
     async fn kill_task(
         &self,
-        request: Request<KillTaskRequest>,
+        _request: Request<KillTaskRequest>,
     ) -> Result<Response<Empty>, Status> {
         // self._kill_task(request).await
         info!("Task removed");

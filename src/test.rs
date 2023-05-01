@@ -1,4 +1,4 @@
-use std::any::Any;
+
 
 // mod executor;
 // mod scheduler;
@@ -69,7 +69,7 @@ async fn main() -> Result<(), Box<dyn std::error::Error>> {
     let mut df: DataFrame<i32> = read_from_csv::<i32>("./mydata.csv");
     // let mut df = DataFrame::new(vec![vec![1, 2], vec![3, 4], vec![5, 6]]);
     // println!("Initial df: {:?}", df);
-    let filtered_df = df.filter(|row: &Row<i32>| row.cols[0] < 3).count();
+    let _filtered_df = df.filter(|row: &Row<i32>| row.cols[0] < 3).count();
     // println!("Return value of select: {:?}", df.select(["col3".to_owned(), "col4".to_owned()].to_vec()));
     // df.select(["col1".to_owned(),"col2".to_owned()].to_vec());
     // println!("Plan after two select calls: {:?}", df.plan);
