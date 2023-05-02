@@ -58,7 +58,7 @@ impl GinExecutor {
 
     pub async fn _launch_task(
         &mut self,
-        request: Request<LaunchTaskRequest>,
+        _request: Request<LaunchTaskRequest>,
     ) -> Result<Response<Empty>, Status> {
         todo!();
         // let _task_info = request.into_inner().task_info;

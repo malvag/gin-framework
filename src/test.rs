@@ -3,7 +3,7 @@
 // mod executor;
 // mod scheduler;
 // use executor_proto;
-use futures::executor::block_on;
+
 // use dataframe::DataFrame;
 // use gin::executor::proto::gin_executor_service_client::GinExecutorServiceClient;
 use gin::common::context::GinContext;
@@ -12,7 +12,7 @@ use gin::common::context::GinContext;
 use gin::common::dataframe::{Row, DataFrame,read_from_csv};
 use gin::scheduler::proto::CheckExecutorsRequest;
 
-use log::error;
+
 // pub fn create_job() {
 //     let mut job_info = JobInfo::new();
 //     // fill in job_info fields as needed
