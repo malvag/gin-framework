@@ -1,10 +1,11 @@
 use crate::GinContext;
 
+use gin::scheduler::proto::stage::StageType;
 use gin::scheduler::proto::{
     SubmitJobRequest
 };
 use gin::scheduler::proto::{ActionType, Filter, Select, Stage};
-use log::debug;
+use log::{debug, error};
 
 
 use std::fmt::Debug;
@@ -13,8 +14,8 @@ use futures::executor::block_on;
 
 pub struct DataFrame<T> {
     pub uri: String,
-    pub data: Vec<Row<T>>,
-    pub plan: Vec<Methods<T>>,
+    data: Vec<Row<T>>,
+    plan: Vec<Methods<T>>,
 }
 
 #[derive(Clone)]
@@ -168,6 +169,7 @@ impl<T: Debug + Clone> DataFrame<T> {
             stage_vec.push(stage);
             index += 1;
         }
+        let stage_vec_clone = stage_vec.clone();
         //send execution graph to scheduler
         let request = SubmitJobRequest {
             dataset_uri: self.uri.to_owned(),
@@ -176,11 +178,46 @@ impl<T: Debug + Clone> DataFrame<T> {
         match block_on(GinContext::get_instance().scheduler.submit_job(request)) {
             Ok(response) => {
                 debug!("Success");
-                let result: f64 = serde_cbor::from_slice(&response.into_inner().result).unwrap();
-                result
+                let action_stage = match stage_vec_clone.last() {
+                    Some(stage) => stage,
+                    None => {
+                        error!("Submit Job failed: Could not get action stage from plan");
+                        return -1.0;
+                    },
+                };
+                match action_stage.stage_type.as_ref().unwrap() {
+                    StageType::Action(action_type) => {
+                        let response_stage_type = match action_type {
+                            0 => ActionType::Sum,
+                            1 => ActionType::Count,
+                            2 => ActionType::Collect,
+                            _ => {
+                                error!("Submit Job failed: Invalid action type");
+                                return -1.0;
+                            }
+                        };
+                        match response_stage_type {
+                            ActionType::Sum | ActionType::Count=>{
+                                let result: f64 = serde_cbor::from_slice(&response.into_inner().result).unwrap();
+                                // [TODO]
+                                // maybe have multiple returnable types?
+                                return result;
+                            },
+                            ActionType::Collect =>{
+                                // [TODO]
+                                // maybe discuss the format of this?
+                                todo!()
+                            }
+                        }
+                    },
+                    StageType::Filter(_) => error!("Submit Job failed: Invalid action type"),
+                    StageType::Select(_) => error!("Submit Job failed: Invalid action type"),
+                }
+                let status = -1.0;
+                status
             },
             Err(_status) =>{ 
-                panic!("Submit job failed");
+                panic!("Submit job failed: {}", _status);
             }
         }
     }
