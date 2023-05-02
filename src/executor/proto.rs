@@ -1,57 +1,22 @@
 #[allow(clippy::derive_partial_eq_without_eq)]
 #[derive(Clone, PartialEq, ::prost::Message)]
-pub struct ExecutorInfo {
-    #[prost(string, tag = "1")]
-    pub executor_id: ::prost::alloc::string::String,
-    #[prost(string, tag = "2")]
-    pub hostname: ::prost::alloc::string::String,
-    #[prost(int32, tag = "3")]
-    pub port: i32,
-    #[prost(bool, tag = "4")]
-    pub connected: bool,
-}
-#[allow(clippy::derive_partial_eq_without_eq)]
-#[derive(Clone, PartialEq, ::prost::Message)]
-pub struct HeartbeatResponse {
-    #[prost(string, tag = "1")]
-    pub executor_id: ::prost::alloc::string::String,
-}
-#[allow(clippy::derive_partial_eq_without_eq)]
-#[derive(Clone, PartialEq, ::prost::Message)]
-pub struct TaskInfo {
-    #[prost(string, tag = "1")]
-    pub task_id: ::prost::alloc::string::String,
-    #[prost(string, tag = "2")]
-    pub command: ::prost::alloc::string::String,
-    #[prost(string, repeated, tag = "3")]
-    pub arguments: ::prost::alloc::vec::Vec<::prost::alloc::string::String>,
-    #[prost(map = "string, string", tag = "4")]
-    pub environment: ::std::collections::HashMap<
-        ::prost::alloc::string::String,
-        ::prost::alloc::string::String,
-    >,
-    #[prost(string, tag = "5")]
-    pub working_directory: ::prost::alloc::string::String,
-    #[prost(int32, tag = "6")]
-    pub cpu: i32,
-    #[prost(int32, tag = "7")]
-    pub memory: i32,
-    #[prost(int32, tag = "8")]
-    pub disk: i32,
-}
-#[allow(clippy::derive_partial_eq_without_eq)]
-#[derive(Clone, PartialEq, ::prost::Message)]
 pub struct LaunchTaskRequest {
-    #[prost(string, tag = "1")]
-    pub executor_id: ::prost::alloc::string::String,
-    #[prost(message, optional, tag = "2")]
-    pub task_info: ::core::option::Option<TaskInfo>,
+    #[prost(int32, tag = "1")]
+    pub executor_id: i32,
+    #[prost(message, repeated, tag = "2")]
+    pub plan: ::prost::alloc::vec::Vec<crate::common::common::Stage>,
+    #[prost(string, tag = "3")]
+    pub dataset_uri: ::prost::alloc::string::String,
 }
 #[allow(clippy::derive_partial_eq_without_eq)]
 #[derive(Clone, PartialEq, ::prost::Message)]
-pub struct KillTaskRequest {
-    #[prost(string, tag = "1")]
-    pub task_id: ::prost::alloc::string::String,
+pub struct LaunchTaskResponse {
+    #[prost(int32, tag = "1")]
+    pub executor_id: i32,
+    #[prost(bool, tag = "2")]
+    pub success: bool,
+    #[prost(bytes = "vec", tag = "3")]
+    pub result: ::prost::alloc::vec::Vec<u8>,
 }
 #[allow(clippy::derive_partial_eq_without_eq)]
 #[derive(Clone, PartialEq, ::prost::Message)]
@@ -144,10 +109,7 @@ pub mod gin_executor_service_client {
         pub async fn heartbeat(
             &mut self,
             request: impl tonic::IntoRequest<super::Empty>,
-        ) -> std::result::Result<
-            tonic::Response<super::HeartbeatResponse>,
-            tonic::Status,
-        > {
+        ) -> std::result::Result<tonic::Response<super::Empty>, tonic::Status> {
             self.inner
                 .ready()
                 .await
@@ -169,7 +131,10 @@ pub mod gin_executor_service_client {
         pub async fn launch_task(
             &mut self,
             request: impl tonic::IntoRequest<super::LaunchTaskRequest>,
-        ) -> std::result::Result<tonic::Response<super::Empty>, tonic::Status> {
+        ) -> std::result::Result<
+            tonic::Response<super::LaunchTaskResponse>,
+            tonic::Status,
+        > {
             self.inner
                 .ready()
                 .await
@@ -188,28 +153,6 @@ pub mod gin_executor_service_client {
                 .insert(GrpcMethod::new("executor.GinExecutorService", "LaunchTask"));
             self.inner.unary(req, path, codec).await
         }
-        pub async fn kill_task(
-            &mut self,
-            request: impl tonic::IntoRequest<super::KillTaskRequest>,
-        ) -> std::result::Result<tonic::Response<super::Empty>, tonic::Status> {
-            self.inner
-                .ready()
-                .await
-                .map_err(|e| {
-                    tonic::Status::new(
-                        tonic::Code::Unknown,
-                        format!("Service was not ready: {}", e.into()),
-                    )
-                })?;
-            let codec = tonic::codec::ProstCodec::default();
-            let path = http::uri::PathAndQuery::from_static(
-                "/executor.GinExecutorService/KillTask",
-            );
-            let mut req = request.into_request();
-            req.extensions_mut()
-                .insert(GrpcMethod::new("executor.GinExecutorService", "KillTask"));
-            self.inner.unary(req, path, codec).await
-        }
     }
 }
 /// Generated server implementations.
@@ -222,18 +165,14 @@ pub mod gin_executor_service_server {
         async fn heartbeat(
             &self,
             request: tonic::Request<super::Empty>,
-        ) -> std::result::Result<
-            tonic::Response<super::HeartbeatResponse>,
-            tonic::Status,
-        >;
+        ) -> std::result::Result<tonic::Response<super::Empty>, tonic::Status>;
         async fn launch_task(
             &self,
             request: tonic::Request<super::LaunchTaskRequest>,
-        ) -> std::result::Result<tonic::Response<super::Empty>, tonic::Status>;
-        async fn kill_task(
-            &self,
-            request: tonic::Request<super::KillTaskRequest>,
-        ) -> std::result::Result<tonic::Response<super::Empty>, tonic::Status>;
+        ) -> std::result::Result<
+            tonic::Response<super::LaunchTaskResponse>,
+            tonic::Status,
+        >;
     }
     #[derive(Debug)]
     pub struct GinExecutorServiceServer<T: GinExecutorService> {
@@ -319,7 +258,7 @@ pub mod gin_executor_service_server {
                     struct HeartbeatSvc<T: GinExecutorService>(pub Arc<T>);
                     impl<T: GinExecutorService> tonic::server::UnaryService<super::Empty>
                     for HeartbeatSvc<T> {
-                        type Response = super::HeartbeatResponse;
+                        type Response = super::Empty;
                         type Future = BoxFuture<
                             tonic::Response<Self::Response>,
                             tonic::Status,
@@ -363,7 +302,7 @@ pub mod gin_executor_service_server {
                         T: GinExecutorService,
                     > tonic::server::UnaryService<super::LaunchTaskRequest>
                     for LaunchTaskSvc<T> {
-                        type Response = super::Empty;
+                        type Response = super::LaunchTaskResponse;
                         type Future = BoxFuture<
                             tonic::Response<Self::Response>,
                             tonic::Status,
@@ -385,50 +324,6 @@ pub mod gin_executor_service_server {
                     let fut = async move {
                         let inner = inner.0;
                         let method = LaunchTaskSvc(inner);
-                        let codec = tonic::codec::ProstCodec::default();
-                        let mut grpc = tonic::server::Grpc::new(codec)
-                            .apply_compression_config(
-                                accept_compression_encodings,
-                                send_compression_encodings,
-                            )
-                            .apply_max_message_size_config(
-                                max_decoding_message_size,
-                                max_encoding_message_size,
-                            );
-                        let res = grpc.unary(method, req).await;
-                        Ok(res)
-                    };
-                    Box::pin(fut)
-                }
-                "/executor.GinExecutorService/KillTask" => {
-                    #[allow(non_camel_case_types)]
-                    struct KillTaskSvc<T: GinExecutorService>(pub Arc<T>);
-                    impl<
-                        T: GinExecutorService,
-                    > tonic::server::UnaryService<super::KillTaskRequest>
-                    for KillTaskSvc<T> {
-                        type Response = super::Empty;
-                        type Future = BoxFuture<
-                            tonic::Response<Self::Response>,
-                            tonic::Status,
-                        >;
-                        fn call(
-                            &mut self,
-                            request: tonic::Request<super::KillTaskRequest>,
-                        ) -> Self::Future {
-                            let inner = Arc::clone(&self.0);
-                            let fut = async move { (*inner).kill_task(request).await };
-                            Box::pin(fut)
-                        }
-                    }
-                    let accept_compression_encodings = self.accept_compression_encodings;
-                    let send_compression_encodings = self.send_compression_encodings;
-                    let max_decoding_message_size = self.max_decoding_message_size;
-                    let max_encoding_message_size = self.max_encoding_message_size;
-                    let inner = self.inner.clone();
-                    let fut = async move {
-                        let inner = inner.0;
-                        let method = KillTaskSvc(inner);
                         let codec = tonic::codec::ProstCodec::default();
                         let mut grpc = tonic::server::Grpc::new(codec)
                             .apply_compression_config(

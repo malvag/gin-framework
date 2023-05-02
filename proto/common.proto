@@ -1,0 +1,27 @@
+syntax = "proto3";
+
+package common;
+
+enum ActionType {
+    Sum = 0;
+    Count = 1;
+    Collect = 2;
+}
+
+message Stage {
+    string id = 1;
+    oneof stage_type {
+        Filter filter = 2;
+        Select select = 3;
+        ActionType action = 4;
+    }
+    // repeated string dependencies = 7;
+}
+
+message Filter {
+    bytes predicate = 1;
+}
+
+message Select {
+    repeated string columns = 1;
+}

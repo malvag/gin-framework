@@ -1,7 +1,8 @@
 pub mod executor;
 pub mod scheduler;
+pub mod common;
 
-use scheduler::proto::Stage;
+use common::common::Stage;
 
 
 

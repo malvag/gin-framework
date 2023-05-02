@@ -4,45 +4,15 @@
 // mod scheduler;
 // use executor_proto;
 use futures::executor::block_on;
-mod dataframe;
 // use dataframe::DataFrame;
 // use gin::executor::proto::gin_executor_service_client::GinExecutorServiceClient;
-use gin::scheduler::proto::gin_scheduler_service_client::GinSchedulerServiceClient;
-use gin::scheduler::proto::CheckExecutorsRequest;
+use gin::common::context::GinContext;
 // use scheduler::proto::Stage;
 // use gin::Job;
-use dataframe::{Row, DataFrame,read_from_csv};
-
+use gin::common::dataframe::{Row, DataFrame,read_from_csv};
+use gin::scheduler::proto::CheckExecutorsRequest;
 
 use log::error;
-pub struct GinContext {
-    scheduler: GinSchedulerServiceClient<tonic::transport::Channel>,
-    // application: Vec<Job>,
-}
-
-impl GinContext {
-    //singleton instance
-    fn get_instance() -> &'static mut Self {
-        static mut INSTANCE: *mut GinContext = std::ptr::null_mut();
-        static ONCE: std::sync::Once = std::sync::Once::new();
-        ONCE.call_once(|| unsafe {
-            let sched_result =
-                block_on(GinSchedulerServiceClient::connect("http://127.0.0.1:50051"));
-            match sched_result {
-                Ok(scheduler) => {
-                    INSTANCE = Box::into_raw(Box::new(GinContext {
-                        scheduler,
-                    }));
-                }
-                Err(_) => {
-                    error!("Could not connect to scheduler");
-                }
-            }
-        });
-        unsafe { &mut *INSTANCE }
-    }
-}
-
 // pub fn create_job() {
 //     let mut job_info = JobInfo::new();
 //     // fill in job_info fields as needed

@@ -1,6 +1,8 @@
 syntax = "proto3";
 package scheduler;
 
+import "common.proto";
+
 // Message for requesting the status of all connected executors
 message CheckExecutorsRequest {
 }
@@ -11,29 +13,6 @@ message CheckExecutorsResponse {
   map<string, bool> executor_status = 1;
 }
 
-enum ActionType {
-    Sum = 0;
-    Count = 1;
-    Collect = 2;
-}
-
-message Stage {
-    string id = 1;
-    oneof stage_type {
-        Filter filter = 2;
-        Select select = 3;
-        ActionType action = 4;
-    }
-    // repeated string dependencies = 7;
-}
-
-message Filter {
-    bytes predicate = 1;
-}
-
-message Select {
-    repeated string columns = 1;
-}
 
 service GinSchedulerService {
     rpc RegisterExecutor(RegisterExecutorRequest) returns (RegisterExecutorResponse) {}
@@ -59,7 +38,7 @@ message UnregisterExecutorResponse {
 }
 
 message SubmitJobRequest {
-    repeated Stage plan = 1;
+    repeated common.Stage plan = 1;
     string dataset_uri = 2;
 }
 

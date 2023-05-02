@@ -1,12 +1,8 @@
-use crate::GinContext;
 
-use gin::scheduler::proto::stage::StageType;
-use gin::scheduler::proto::{
-    SubmitJobRequest
-};
-use gin::scheduler::proto::{ActionType, Filter, Select, Stage};
+use crate::scheduler::proto::SubmitJobRequest;
+use crate::common::common::{ActionType, Filter, Select, Stage};
 use log::{debug, error};
-
+use crate::common::common::stage::StageType;
 
 use std::fmt::Debug;
 use std::mem;
@@ -123,7 +119,7 @@ impl<T: Debug + Clone> DataFrame<T> {
                     debug!("Methods:Collect");
                     stage = Stage {
                         id: index.to_owned().to_string(),
-                        stage_type: Some(gin::scheduler::proto::stage::StageType::Action(
+                        stage_type: Some(StageType::Action(
                             ActionType::Collect.into(),
                         )),
                     };
@@ -132,7 +128,7 @@ impl<T: Debug + Clone> DataFrame<T> {
                     debug!("Methods:Count");
                     stage = Stage {
                         id: index.to_owned().to_string(),
-                        stage_type: Some(gin::scheduler::proto::stage::StageType::Action(
+                        stage_type: Some(StageType::Action(
                             ActionType::Count.into(),
                         )),
                     };
@@ -141,7 +137,7 @@ impl<T: Debug + Clone> DataFrame<T> {
                     debug!("Methods:Sum");
                     stage = Stage {
                         id: index.to_owned().to_string(),
-                        stage_type: Some(gin::scheduler::proto::stage::StageType::Action(
+                        stage_type: Some(StageType::Action(
                             ActionType::Sum.into(),
                         )),
                     };
@@ -151,7 +147,7 @@ impl<T: Debug + Clone> DataFrame<T> {
                     let closure_bytes = serialize_filter(func);
                     stage = Stage {
                         id: index.to_owned().to_string(),
-                        stage_type: Some(gin::scheduler::proto::stage::StageType::Filter(Filter {
+                        stage_type: Some(StageType::Filter(Filter {
                             predicate: closure_bytes.to_vec(),
                         })),
                     };
@@ -160,7 +156,7 @@ impl<T: Debug + Clone> DataFrame<T> {
                     debug!("Methods:Select");
                     stage = Stage {
                         id: index.to_owned().to_string(),
-                        stage_type: Some(gin::scheduler::proto::stage::StageType::Select(Select {
+                        stage_type: Some(StageType::Select(Select {
                             columns: select_vec.clone(),
                         })),
                     };
@@ -175,7 +171,7 @@ impl<T: Debug + Clone> DataFrame<T> {
             dataset_uri: self.uri.to_owned(),
             plan: stage_vec,
         };
-        match block_on(GinContext::get_instance().scheduler.submit_job(request)) {
+        match block_on(crate::common::context::GinContext::get_instance().scheduler.submit_job(request)) {
             Ok(response) => {
                 debug!("Success");
                 let action_stage = match stage_vec_clone.last() {

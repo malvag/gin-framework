@@ -16,7 +16,7 @@ use crate::scheduler::proto::{RegisterExecutorResponse,UnregisterExecutorRespons
 
 use std::sync::atomic::{AtomicUsize, Ordering};
 
-use super::proto::stage::StageType;
+use crate::common::common::stage::StageType;
 
 pub struct IdGenerator {
     next_id: AtomicUsize,
@@ -152,15 +152,15 @@ impl GinSchedulerService for Scheduler {
         for stage in graph.iter() {
             match &stage.stage_type {
                 Some(StageType::Action(method_type)) => {
-                    info!("action {}", method_type);
+                    debug!("action {}", method_type);
                 },
                 Some(StageType::Filter(_method_type)) => {
-                    info!("filter");
+                    debug!("filter");
                 },
                 Some(StageType::Select(_method_type)) => {
-                    info!("select");
+                    debug!("select");
                 },
-                None => info!("No valid method"),
+                None => debug!("No valid method"),
             }
         }
         todo!();

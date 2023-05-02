@@ -1,6 +1,5 @@
 use crate::executor::proto::{
-    gin_executor_service_server::GinExecutorService, Empty, ExecutorInfo, HeartbeatResponse,
-    KillTaskRequest, LaunchTaskRequest,
+    gin_executor_service_server::GinExecutorService, Empty, LaunchTaskRequest,LaunchTaskResponse
 };
 use crate::scheduler::proto::gin_scheduler_service_client::GinSchedulerServiceClient;
 use crate::scheduler::proto::RegisterExecutorRequest;
@@ -35,19 +34,8 @@ impl GinExecutor {
         ob
     }
 
-    pub fn _get_info(&self) -> ExecutorInfo {
-        ExecutorInfo {
-            executor_id: self.id.clone(),
-            hostname: self.hostname.clone(),
-            port: self.port,
-            connected: self.connected,
-        }
-    }
-
-    pub async fn _heartbeat(&self) -> Result<Response<HeartbeatResponse>, Status> {
-        Ok(Response::new(HeartbeatResponse {
-            executor_id: self.id.clone(),
-        }))
+    pub async fn _heartbeat(&self) -> Result<Response<Empty>, Status> {
+        Ok(Response::new(Empty {}))
     }
 
     pub fn _attach_to_scheduler(&self) {
@@ -72,19 +60,13 @@ impl GinExecutor {
         &mut self,
         request: Request<LaunchTaskRequest>,
     ) -> Result<Response<Empty>, Status> {
-        let _task_info = request.into_inner().task_info;
-        // Implement launching of task
-        Ok(Response::new(Empty {}))
+        todo!();
+        // let _task_info = request.into_inner().task_info;
+        // // Implement launching of task
+        // Ok(Response::new(Empty {}))
     }
 
-    pub async fn _kill_task(
-        &mut self,
-        request: Request<KillTaskRequest>,
-    ) -> Result<Response<Empty>, Status> {
-        let _task_id = request.into_inner().task_id;
-        // Implement killing of task
-        Ok(Response::new(Empty {}))
-    }
+    
 }
 
 #[tonic::async_trait]
@@ -92,7 +74,7 @@ impl GinExecutorService for GinExecutor {
     async fn heartbeat(
         &self,
         _request: Request<Empty>,
-    ) -> Result<Response<HeartbeatResponse>, Status> {
+    ) -> Result<Response<Empty>, Status> {
         info!("Bah dup!");
         self.to_owned()._heartbeat().await
     }
@@ -100,19 +82,13 @@ impl GinExecutorService for GinExecutor {
     async fn launch_task(
         &self,
         _request: Request<LaunchTaskRequest>,
-    ) -> Result<Response<Empty>, Status> {
+    ) -> Result<Response<LaunchTaskResponse>, Status> {
         // self._launch_task(request).await
         info!("Task launched");
-        Ok(Response::new(Empty {}))
+        todo!();
+        // Ok(Response::new(Empty {}))
     }
 
-    async fn kill_task(
-        &self,
-        _request: Request<KillTaskRequest>,
-    ) -> Result<Response<Empty>, Status> {
-        // self._kill_task(request).await
-        info!("Task removed");
-        Ok(Response::new(Empty {}))
-    }
+   
 }
 
