@@ -118,7 +118,7 @@ impl Scheduler {
             // id_generator: Arc::new(IdGenerator::new()),
         }
     }
-    fn launch_task_on_thread_pool(
+    fn sync_send_launch(
         &self,
         _request: Request<SubmitJobRequest>,
     ) -> Result<Response<SubmitJobResponse>, Status> {
@@ -248,7 +248,7 @@ impl GinSchedulerService for Scheduler {
             }
         }
 
-        self.launch_task_on_thread_pool(_request)
+        self.sync_send_launch(_request)
     }
 
     async fn check_executors(
