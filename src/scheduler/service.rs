@@ -1,18 +1,23 @@
-use std::collections::{HashMap};
+use std::collections::HashMap;
 use std::sync::{Arc, Mutex};
 // use
-
-use log::debug;
-use log::info;
-use tonic::{ Request, Response, Status};
-
+use crate::executor::proto::gin_executor_service_client::GinExecutorServiceClient;
+use crate::executor::proto::{Empty, LaunchTaskRequest};
+use crate::scheduler::proto::gin_scheduler_service_server::GinSchedulerService;
 use crate::scheduler::proto::CheckExecutorsRequest;
 use crate::scheduler::proto::CheckExecutorsResponse;
-use crate::executor::proto::gin_executor_service_client::GinExecutorServiceClient;
-use crate::executor::proto::Empty;
-use crate::scheduler::proto::gin_scheduler_service_server::GinSchedulerService;
+// use futures::executor::block_on;
+use log::debug;
+use log::info;
+use std::sync::mpsc;
+use std::thread;
+use tokio::runtime::Runtime;
+use tonic::{Request, Response, Status};
 
-use crate::scheduler::proto::{RegisterExecutorResponse,UnregisterExecutorResponse,RegisterExecutorRequest, SubmitJobRequest, SubmitJobResponse, UnregisterExecutorRequest};
+use crate::scheduler::proto::{
+    RegisterExecutorRequest, RegisterExecutorResponse, SubmitJobRequest, SubmitJobResponse,
+    UnregisterExecutorRequest, UnregisterExecutorResponse,
+};
 
 use std::sync::atomic::{AtomicUsize, Ordering};
 
@@ -103,7 +108,6 @@ impl IdGenerator {
 
 pub struct Scheduler {
     executors: Arc<Mutex<HashMap<String, bool>>>,
-
     // id_generator: Arc<IdGenerator>,
 }
 
@@ -113,6 +117,86 @@ impl Scheduler {
             executors: Arc::new(Mutex::new(HashMap::new())),
             // id_generator: Arc::new(IdGenerator::new()),
         }
+    }
+    fn launch_task_on_thread_pool(
+        &self,
+        _request: Request<SubmitJobRequest>,
+    ) -> Result<Response<SubmitJobResponse>, Status> {
+        let executors_copy: Arc<Vec<String>> = Arc::new(Vec::from_iter({
+            let executors_guard = self.executors.lock().unwrap();
+            (*executors_guard)
+                .clone()
+                .keys()
+                .map(|k| k.to_owned())
+                .collect::<Vec<String>>()
+        }));
+        // Create a channel with a buffer size of the number of workers
+        let (tx, rx) = mpsc::channel::<()>();
+
+        // Number of worker threads
+        for i in 0..executors_copy.clone().len() {
+            let tx = tx.clone();
+            let thread_id = i + 1;
+            let _request_copy = _request.get_ref().to_owned();
+            let executors_copy_clone = executors_copy.clone();
+            // Spawn a new worker thread
+            thread::spawn(move || {
+                debug!("Scheduler's thread {} started", thread_id);
+
+                let rt = Runtime::new().unwrap();
+
+                let mut client: GinExecutorServiceClient<tonic::transport::Channel> = match rt
+                    .block_on(GinExecutorServiceClient::connect(
+                        executors_copy_clone[i].clone(),
+                    )) {
+                    Ok(client) => client,
+                    Err(_) => {
+                        // Executor is not reachable
+                        panic!(
+                            "Could not connect to executor {}",
+                            executors_copy_clone[i].clone()
+                        );
+                    }
+                };
+
+                let submit_task = LaunchTaskRequest {
+                    executor_id: i32::abs(i.try_into().unwrap()),
+                    plan: _request_copy.plan.clone(),
+                    dataset_uri: _request_copy.dataset_uri.to_owned(),
+                };
+
+                let _response = match rt.block_on(client.launch_task(submit_task)) {
+                    Ok(response) => response,
+                    Err(_) => {
+                        // Executor is not reachable
+                        panic!(
+                            "Could not get response from executor {}",
+                            executors_copy_clone[i].clone()
+                        );
+                    }
+                };
+
+                //
+                todo!("handle response");
+                // assemble it into a cross-result
+                todo!("assemble result from each response");
+
+                // thread::sleep(std::time::Duration::from_secs(1));
+                debug!("Scheduler's thread {} finished", thread_id);
+
+                // Signal completion to the main thread
+                tx.send(()).unwrap();
+            });
+        }
+        // Wait for messages from all the worker threads
+        for _ in 0..executors_copy.len() {
+            rx.recv().unwrap();
+        }
+
+        // All worker threads have completed the task successfully
+        debug!("All workers completed the task successfully");
+
+        todo!();
     }
 }
 // Implement the service methods
@@ -147,24 +231,24 @@ impl GinSchedulerService for Scheduler {
         &self,
         _request: Request<SubmitJobRequest>,
     ) -> Result<Response<SubmitJobResponse>, Status> {
-        let graph =  &_request.get_ref().plan;
-        
+        let graph = &_request.get_ref().plan;
+
         for stage in graph.iter() {
             match &stage.stage_type {
                 Some(StageType::Action(method_type)) => {
                     debug!("action {}", method_type);
-                },
+                }
                 Some(StageType::Filter(_method_type)) => {
                     debug!("filter");
-                },
+                }
                 Some(StageType::Select(_method_type)) => {
                     debug!("select");
-                },
+                }
                 None => debug!("No valid method"),
             }
         }
-        todo!();
-        // todo!()
+
+        self.launch_task_on_thread_pool(_request)
     }
 
     async fn check_executors(
@@ -172,15 +256,15 @@ impl GinSchedulerService for Scheduler {
         _request: Request<CheckExecutorsRequest>,
     ) -> Result<Response<CheckExecutorsResponse>, Status> {
         debug!("Checking executors!");
-    
+
         let mut executor_stats = HashMap::<String, bool>::new();
-        let executors_copy: HashMap<String,bool> = {
+        let executors_copy: HashMap<String, bool> = {
             let executors_guard = self.executors.lock().unwrap();
             (*executors_guard).clone()
         };
         for (uri, executor) in executors_copy.iter() {
             debug!("{} {}", uri.clone(), executor.clone());
-            let mut client = match GinExecutorServiceClient::connect(uri.clone()).await{
+            let mut client = match GinExecutorServiceClient::connect(uri.clone()).await {
                 Ok(client) => client,
                 Err(_) => {
                     // Executor is not reachable
@@ -207,6 +291,4 @@ impl GinSchedulerService for Scheduler {
         };
         Ok(Response::new(response))
     }
-    
-    
 }
