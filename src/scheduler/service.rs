@@ -120,12 +120,6 @@ impl Scheduler {
                     dataset_uri: _request_copy.dataset_uri.to_owned(),
                 };
 
-                let submit_task = LaunchTaskRequest {
-                    executor_id: i32::abs(i.try_into().unwrap()),
-                    plan: _request_copy.plan.clone(),
-                    dataset_uri: _request_copy.dataset_uri.to_owned(),
-                };
-
                 let _response = match rt.block_on(client.launch_task(submit_task)) {
                     Ok(response) => response,
                     Err(e) => {

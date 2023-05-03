@@ -11,6 +11,7 @@ use log::info;
 
 
 
+use serde_cbor::de;
 use tonic::{Request, Response, Status};
 #[derive(Debug)]
 pub struct GinExecutor {
@@ -75,7 +76,14 @@ impl GinExecutorService for GinExecutor {
     ) -> Result<Response<LaunchTaskResponse>, Status> {
         // self._launch_task(request).await
         info!("Task launched");
-        todo!();
+       
+       let demo_result:f64 = 10.0;
+       let demo_response = LaunchTaskResponse{
+        executor_id: 0,
+        success: true,
+        result: serde_cbor::to_vec(&demo_result).unwrap()
+       };
+       Ok(Response::new(demo_response))
         // Ok(Response::new(Empty {}))
     }
 

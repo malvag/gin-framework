@@ -40,6 +40,7 @@ async fn main() -> Result<(), Box<dyn std::error::Error>> {
     // let mut df = DataFrame::new(vec![vec![1, 2], vec![3, 4], vec![5, 6]]);
     // println!("Initial df: {:?}", df);
     let _filtered_df = df.filter(|row: &Row<i32>| row.cols[0] < 3).count();
+    println!("Demo result {}",_filtered_df);
     // println!("Return value of select: {:?}", df.select(["col3".to_owned(), "col4".to_owned()].to_vec()));
     // df.select(["col1".to_owned(),"col2".to_owned()].to_vec());
     // println!("Plan after two select calls: {:?}", df.plan);

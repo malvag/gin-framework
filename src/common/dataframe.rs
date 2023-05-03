@@ -194,7 +194,8 @@ impl<T: Debug + Clone> DataFrame<T> {
                         };
                         match response_stage_type {
                             ActionType::Sum | ActionType::Count=>{
-                                let result: f64 = serde_cbor::from_slice(&response.into_inner().result).unwrap();
+                                let arr: [u8; 8] = response.into_inner().result.try_into().unwrap();
+                                let result: f64 = f64::from_le_bytes(arr); 
                                 // [TODO]
                                 // maybe have multiple returnable types?
                                 return result;
