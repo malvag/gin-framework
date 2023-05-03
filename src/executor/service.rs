@@ -56,16 +56,6 @@ impl GinExecutor {
         info!("Registered to scheduler");
     }
 
-    pub async fn _launch_task(
-        &mut self,
-        _request: Request<LaunchTaskRequest>,
-    ) -> Result<Response<Empty>, Status> {
-        todo!();
-        // let _task_info = request.into_inner().task_info;
-        // // Implement launching of task
-        // Ok(Response::new(Empty {}))
-    }
-
     
 }
 

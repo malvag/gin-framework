@@ -1,13 +1,16 @@
 use std::collections::HashMap;
 use std::sync::{Arc, Mutex};
+use crate::common::common::Stage;
+use crate::common::common::ActionType;
 // use
 use crate::executor::proto::gin_executor_service_client::GinExecutorServiceClient;
-use crate::executor::proto::{Empty, LaunchTaskRequest};
+use crate::executor::proto::{Empty, LaunchTaskRequest, LaunchTaskResponse};
 use crate::scheduler::proto::gin_scheduler_service_server::GinSchedulerService;
 use crate::scheduler::proto::CheckExecutorsRequest;
 use crate::scheduler::proto::CheckExecutorsResponse;
 // use futures::executor::block_on;
 use log::debug;
+use log::error;
 use log::info;
 use std::sync::mpsc;
 use std::thread;
@@ -39,73 +42,6 @@ impl IdGenerator {
     }
 }
 
-// Define a struct to hold the state of the scheduler
-// impl Scheduler {
-//     // Delegate a job to the next available executor
-//     async fn _delegate_job(&mut self) -> Result<(), Status> {
-//         // Acquire the job queue lock
-//         let lock = self.job_queue_lock.clone();
-//         let _guard = lock.lock().unwrap();
-
-//         // Check if there are any pending jobs
-//         let job = match self.pending_jobs.pop_front() {
-//             Some(job) => job,
-//             None => return Ok(()),
-//         };
-
-//         // Find the next available executor
-//         let mut selected_executor = None;
-//         for (uri, connected) in &self.executors {
-//             if *connected.borrow() {
-//                 selected_executor = Some(uri);
-//                 break;
-//             }
-//         }
-
-//         // If no executor is available, put the job back on the pending jobs queue and return
-//         let executor_uri = match selected_executor {
-//             Some(uri) => uri,
-//             None => {
-//                 self.pending_jobs.push_back(job);
-//                 return Ok(());
-//             }
-//         };
-
-//         // Send the job to the selected executor
-//         let client = match GinExecutorServiceClient::connect(executor_uri.clone()).await {
-//             Ok(client) => client,
-//             Err(_) => {
-//                 // The executor is no longer connected
-//                 self.executors
-//                     .insert(executor_uri.clone(), RefCell::new(false));
-//                 return Ok(());
-//             }
-//         };
-
-//         debug!(
-//             "Job {} (not really) delegated to executor {}",
-//             job.id, executor_uri
-//         );
-//         // let request = tonic::Request::new(job.clone());
-//         // match client.(request).await {
-//         //     Ok(_) => {
-//         //         // Job was successfully delegated
-//         //     }
-//         //     Err(_) => {
-//         //         // The executor is no longer connected
-//         //         self.executors.insert(executor_uri.clone(), false);
-//         //         return Ok(());
-//         //     }
-//         // };
-
-//         Ok(())
-//     }
-
-// }
-
-// Implement the SchedulerService gRPC service
-// #[derive(Debug)]
-
 pub struct Scheduler {
     executors: Arc<Mutex<HashMap<String, bool>>>,
     // id_generator: Arc<IdGenerator>,
@@ -118,6 +54,17 @@ impl Scheduler {
             // id_generator: Arc::new(IdGenerator::new()),
         }
     }
+
+    fn aggregate_results(&self, bytes_vec: Vec<Vec<u8>>) -> Result<f64, Box<dyn std::error::Error>> {
+        let mut sum = 0.0;
+        for bytes in bytes_vec {
+            let result: f64 = serde_cbor::from_slice(&bytes).unwrap();
+            sum += result;
+        }
+        Ok(sum)
+    }
+    
+
     fn sync_send_launch(
         &self,
         _request: Request<SubmitJobRequest>,
@@ -132,31 +79,45 @@ impl Scheduler {
         }));
         // Create a channel with a buffer size of the number of workers
         let (tx, rx) = mpsc::channel::<()>();
+        // Create a channel for results with a buffer size of the number of workers
+        let (result_tx, result_rx) = mpsc::channel::<Result<LaunchTaskResponse, String>>(); //executors_copy.len()
 
         // Number of worker threads
         for i in 0..executors_copy.clone().len() {
             let tx = tx.clone();
+            let result_tx = result_tx.clone();
             let thread_id = i + 1;
             let _request_copy = _request.get_ref().to_owned();
-            let executors_copy_clone = executors_copy.clone();
+            let executor = executors_copy[i].clone();
             // Spawn a new worker thread
             thread::spawn(move || {
                 debug!("Scheduler's thread {} started", thread_id);
 
                 let rt = Runtime::new().unwrap();
 
-                let mut client: GinExecutorServiceClient<tonic::transport::Channel> = match rt
-                    .block_on(GinExecutorServiceClient::connect(
-                        executors_copy_clone[i].clone(),
-                    )) {
-                    Ok(client) => client,
-                    Err(_) => {
-                        // Executor is not reachable
-                        panic!(
-                            "Could not connect to executor {}",
-                            executors_copy_clone[i].clone()
-                        );
-                    }
+                let mut client: GinExecutorServiceClient<tonic::transport::Channel> =
+                    match rt.block_on(GinExecutorServiceClient::connect(executor.clone())) {
+                        Ok(client) => client,
+                        Err(e) => {
+                            // Executor is not reachable
+                            error!("Could not connect to executor {}: {}", executor.clone(), e);
+
+                            result_tx
+                                .send(Err(format!(
+                                    "Could not connect to executor {}",
+                                    executor.clone()
+                                )))
+                                .unwrap();
+                            // Signal completion to the main thread
+                            tx.send(()).unwrap();
+                            return;
+                        }
+                    };
+
+                let submit_task = LaunchTaskRequest {
+                    executor_id: i32::abs(i.try_into().unwrap()),
+                    plan: _request_copy.plan.clone(),
+                    dataset_uri: _request_copy.dataset_uri.to_owned(),
                 };
 
                 let submit_task = LaunchTaskRequest {
@@ -167,19 +128,29 @@ impl Scheduler {
 
                 let _response = match rt.block_on(client.launch_task(submit_task)) {
                     Ok(response) => response,
-                    Err(_) => {
+                    Err(e) => {
                         // Executor is not reachable
-                        panic!(
-                            "Could not get response from executor {}",
-                            executors_copy_clone[i].clone()
+
+                        error!(
+                            "Could not get response from executor {}: {}",
+                            executor.clone(),
+                            e
                         );
+
+                        result_tx
+                            .send(Err(format!(
+                                "Could not get response from executor {}",
+                                executor.clone()
+                            )))
+                            .unwrap();
+                        // Signal completion to the main thread
+                        tx.send(()).unwrap();
+                        return;
                     }
                 };
 
-                //
-                todo!("handle response");
-                // assemble it into a cross-result
-                todo!("assemble result from each response");
+                // Send the result back to the main thread
+                result_tx.send(Ok(_response.into_inner())).unwrap();
 
                 // thread::sleep(std::time::Duration::from_secs(1));
                 debug!("Scheduler's thread {} finished", thread_id);
@@ -193,10 +164,73 @@ impl Scheduler {
             rx.recv().unwrap();
         }
 
-        // All worker threads have completed the task successfully
-        debug!("All workers completed the task successfully");
+        // Collect the results from all the worker threads
+        let mut results = Vec::with_capacity(executors_copy.len());
+        for _ in 0..executors_copy.len() {
+            match result_rx.recv().unwrap() {
+                Ok(response) => results.push(Ok(response)),
+                Err(err) => results.push(Err(err)),
+            }
+        }
+        let action_stage = match _request.get_ref().plan.last() {
+            Some(stage) => stage,
+            None => {
+                return Err(Status::aborted("Launch Job failed: Could not get last stage from plan. Corrupted state?"));
+            },
+        };
 
-        todo!();
+        match action_stage.stage_type.as_ref().unwrap() {
+            StageType::Action(action_type) => {
+                let req_to_client_stage_type = match action_type {
+                    0 => ActionType::Sum,
+                    1 => ActionType::Count,
+                    2 => ActionType::Collect,
+                    _ => {
+                        return Err(Status::aborted("Could not evaluate action stage after execution. Corrupted state?"));
+                    }
+                };
+                match req_to_client_stage_type {
+                    ActionType::Sum | ActionType::Count=>{
+                        // deserialize the result from every thread
+                        let mut aggregated: Vec<Vec<u8>> = Vec::new();
+                        for thread_result in results {
+                            match thread_result {
+                            Ok(result) =>{
+                                aggregated.push(result.result);
+                            },
+                            Err(_) => {return Err(Status::aborted("Could not evaluate result from thread. Corrupted state?"));}
+                        }
+                        }
+                        let unserialized_result = self.aggregate_results(aggregated);
+                        // serialize it for the client
+                        let serialized = match unserialized_result{
+                            Ok(unserialized) => {
+                                unserialized.to_le_bytes()
+                            },
+                            Err(_) => {return Err(Status::aborted("Could not evaluate result from thread. Corrupted state?"));}
+                        };
+                        // [TODO]
+                        // maybe have multiple returnable types?
+                        let response = SubmitJobResponse {
+                            success: true,
+                            result: serialized.to_vec()
+                        };
+                        return Ok(Response::new(response));
+                    },
+                    ActionType::Collect =>{
+                        // [TODO]
+                        // maybe discuss the format of this?
+                        todo!()
+                    }
+                }
+            },
+            StageType::Filter(_) => error!("Submit Job failed: Invalid action type"),
+            StageType::Select(_) => error!("Submit Job failed: Invalid action type"),
+        }
+        // All worker threads have completed the task successfully
+        // debug!("All workers completed the task successfully");
+
+        return Err(Status::aborted("Failed launching task. Corrupted state?"));
     }
 }
 // Implement the service methods
