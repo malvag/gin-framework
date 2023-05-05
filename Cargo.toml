@@ -9,9 +9,13 @@ edition = "2021"
 env_logger = "0.10.0"
 futures = "0.3.28"
 log = "0.4.17"
+proc-macro2 = "1.0.56"
 prost = "0.11.8"
+quote = "1.0.26"
 rand = "0.8.5"
+rhai = "1.14.0"
 serde_cbor = "0.11.2"
+syn = {version = "2.0.15", features = ["full"]}
 tokio = { version = "1.27.0" , features = ["rt-multi-thread", "macros"]}
 tonic = "0.9.1"
 tonic-reflection = "0.9.1"

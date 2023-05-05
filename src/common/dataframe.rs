@@ -1,11 +1,10 @@
 
 use crate::scheduler::proto::SubmitJobRequest;
-use crate::common::common::{ActionType, Filter, Select, Stage};
+use crate::common::common::{ActionType, Select, Stage};
 use log::{debug, error};
 use crate::common::common::stage::StageType;
 
 use std::fmt::Debug;
-use std::mem;
 use futures::executor::block_on;
 
 pub struct DataFrame<T> {
@@ -26,28 +25,6 @@ pub enum Methods<T> {
 #[derive(Clone)]
 pub struct Row<T> {
     pub cols: Vec<T>,
-}
-
-fn serialize_filter<T, F>(filter: &F) -> Vec<u8>
-where
-    F: Fn(&Row<T>) -> bool,
-{
-    let filter_ptr = filter as *const F as *const u8;
-    let filter_size = mem::size_of::<F>();
-    let mut buffer = Vec::with_capacity(filter_size);
-    unsafe {
-        buffer.set_len(filter_size);
-        std::ptr::copy_nonoverlapping(filter_ptr, buffer.as_mut_ptr(), filter_size);
-    }
-    buffer
-}
-
-fn deserialize_filter<T, F>(bytes: &[u8]) -> &'static F
-where
-    F: Fn(&Row<T>) -> bool + 'static,
-{
-    let filter_ptr = bytes.as_ptr() as *const F;
-    unsafe { &*filter_ptr }
 }
 
 impl<T: Debug + Clone> DataFrame<T> {
@@ -144,13 +121,15 @@ impl<T: Debug + Clone> DataFrame<T> {
                 }
                 Methods::Filter(func) => {
                     debug!("Methods:Filter");
-                    let closure_bytes = serialize_filter(func);
-                    stage = Stage {
-                        id: index.to_owned().to_string(),
-                        stage_type: Some(StageType::Filter(Filter {
-                            predicate: closure_bytes.to_vec(),
-                        })),
-                    };
+                    // let closure_bytes = serialize_filter(func);
+                    // let serialized = serde_cbor::to_vec(&func).unwrap();
+                    todo!();
+                    // stage = Stage {
+                    //     id: index.to_owned().to_string(),
+                    //     stage_type: Some(StageType::Filter(Filter {
+                    //         predicate: closure_bytes.to_vec(),
+                    //     })),
+                    // };
                 }
                 Methods::Select(select_vec) => {
                     debug!("Methods:Select");

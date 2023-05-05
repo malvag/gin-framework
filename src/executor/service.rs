@@ -1,18 +1,57 @@
+use crate::common::common::stage::StageType;
 use crate::executor::proto::{
-    gin_executor_service_server::GinExecutorService, Empty, LaunchTaskRequest,LaunchTaskResponse
+    gin_executor_service_server::GinExecutorService, Empty, LaunchTaskRequest, LaunchTaskResponse,
 };
 use crate::scheduler::proto::gin_scheduler_service_client::GinSchedulerServiceClient;
 use crate::scheduler::proto::RegisterExecutorRequest;
 use futures::executor::block_on;
 
-
 use log::info;
 
-
-
-
-
 use tonic::{Request, Response, Status};
+struct TranformationEngine {
+    engine: rhai::Engine,
+}
+use log::error;
+use rhai::{Engine, EvalAltResult, FuncArgs};
+
+impl TranformationEngine {
+    pub fn new() -> Self {
+        let engine = Engine::new();
+        TranformationEngine { engine }
+    }
+    pub fn run_filter(&self, filter_fn: &str, element: f64) -> bool {
+        let mut scope = rhai::Scope::new();
+        let prescript = "_internal = ";
+        let script = prescript.to_owned() + filter_fn; // " x < 5"
+
+        let ast = match self.engine.compile(&script) {
+            Ok(ast) => ast,
+            Err(e) => {
+                error!("Wrong filter function {}", e);
+                return false;
+            }
+        };
+        scope.push("_internal", false);
+        scope.push("x", element);
+
+        // Evaluate it and panic otherwise
+        match self.engine.run_ast_with_scope(&mut scope, &ast) {
+            Ok(_) => {},
+            Err(e) => {
+                error!("Error processing element through the filter function: {}", e);
+                return false;
+            }
+        }
+
+
+        // debug!("{}", scope.get_value::<bool>("_internal").unwrap());
+
+
+        scope.get_value::<bool>("_internal").unwrap()
+    }
+}
+
 #[derive(Debug)]
 pub struct GinExecutor {
     id: String,
@@ -34,11 +73,6 @@ impl GinExecutor {
         ob._attach_to_scheduler();
         ob
     }
-
-    pub async fn _heartbeat(&self) -> Result<Response<Empty>, Status> {
-        Ok(Response::new(Empty {}))
-    }
-
     pub fn _attach_to_scheduler(&self) {
         let scheduler_uri = self.scheduler_uri.clone();
         let uri = format!("http://{}:{}", self.hostname.clone(), self.port);
@@ -56,18 +90,13 @@ impl GinExecutor {
         };
         info!("Registered to scheduler");
     }
-
-    
 }
 
 #[tonic::async_trait]
 impl GinExecutorService for GinExecutor {
-    async fn heartbeat(
-        &self,
-        _request: Request<Empty>,
-    ) -> Result<Response<Empty>, Status> {
+    async fn heartbeat(&self, _request: Request<Empty>) -> Result<Response<Empty>, Status> {
         info!("Bah dup!");
-        self.to_owned()._heartbeat().await
+        Ok(Response::new(Empty {}))
     }
 
     async fn launch_task(
@@ -75,18 +104,40 @@ impl GinExecutorService for GinExecutor {
         _request: Request<LaunchTaskRequest>,
     ) -> Result<Response<LaunchTaskResponse>, Status> {
         // self._launch_task(request).await
+
         info!("Task launched");
-       
-       let demo_result:f64 = 10.0;
-       let demo_response = LaunchTaskResponse{
-        executor_id: 0,
-        success: true,
-        result: serde_cbor::to_vec(&demo_result).unwrap()
-       };
-       Ok(Response::new(demo_response))
+        let mut execution = _request.get_ref().clone();
+        for plan_step in execution.plan {
+            let step = match plan_step.stage_type {
+                Some(stype) => stype,
+                None => {
+                    return Err(Status::aborted(
+                        "Failed launching task on executor. Corrupted state?",
+                    ));
+                }
+            };
+            match step {
+                StageType::Filter(filter) => {
+                    todo!();
+                }
+
+                StageType::Select(columns) => {
+                    todo!();
+                }
+
+                StageType::Action(action) => {
+                    todo!();
+                }
+            }
+        }
+        // test
+        let demo_result: f64 = 10.0;
+        let demo_response = LaunchTaskResponse {
+            executor_id: 0,
+            success: true,
+            result: serde_cbor::to_vec(&demo_result).unwrap(),
+        };
+        Ok(Response::new(demo_response))
         // Ok(Response::new(Empty {}))
     }
-
-   
 }
-
