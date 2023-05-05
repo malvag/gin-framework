@@ -13,7 +13,7 @@ struct TranformationEngine {
     engine: rhai::Engine,
 }
 use log::error;
-use rhai::{Engine, EvalAltResult, FuncArgs};
+use rhai::{Engine};
 
 impl TranformationEngine {
     pub fn new() -> Self {
@@ -106,7 +106,7 @@ impl GinExecutorService for GinExecutor {
         // self._launch_task(request).await
 
         info!("Task launched");
-        let mut execution = _request.get_ref().clone();
+        let execution = _request.get_ref().clone();
         for plan_step in execution.plan {
             let step = match plan_step.stage_type {
                 Some(stype) => stype,
@@ -117,15 +117,15 @@ impl GinExecutorService for GinExecutor {
                 }
             };
             match step {
-                StageType::Filter(filter) => {
+                StageType::Filter(_filter) => {
                     todo!();
                 }
 
-                StageType::Select(columns) => {
+                StageType::Select(_columns) => {
                     todo!();
                 }
 
-                StageType::Action(action) => {
+                StageType::Action(_action) => {
                     todo!();
                 }
             }

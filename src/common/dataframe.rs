@@ -119,7 +119,7 @@ impl<T: Debug + Clone> DataFrame<T> {
                         )),
                     };
                 }
-                Methods::Filter(func) => {
+                Methods::Filter(_func) => {
                     debug!("Methods:Filter");
                     // let closure_bytes = serialize_filter(func);
                     // let serialized = serde_cbor::to_vec(&func).unwrap();
