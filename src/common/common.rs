@@ -22,8 +22,8 @@ pub mod stage {
 #[allow(clippy::derive_partial_eq_without_eq)]
 #[derive(Clone, PartialEq, ::prost::Message)]
 pub struct Filter {
-    #[prost(bytes = "vec", tag = "1")]
-    pub predicate: ::prost::alloc::vec::Vec<u8>,
+    #[prost(string, tag = "1")]
+    pub predicate: ::prost::alloc::string::String,
 }
 #[allow(clippy::derive_partial_eq_without_eq)]
 #[derive(Clone, PartialEq, ::prost::Message)]

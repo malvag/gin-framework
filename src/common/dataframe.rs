@@ -1,6 +1,6 @@
 
 use crate::scheduler::proto::SubmitJobRequest;
-use crate::common::common::{ActionType, Select, Stage};
+use crate::common::common::{ActionType, Select, Stage, Filter};
 use log::{debug, error};
 use crate::common::common::stage::StageType;
 
@@ -10,16 +10,16 @@ use futures::executor::block_on;
 pub struct DataFrame<T> {
     pub uri: String,
     data: Vec<Row<T>>,
-    plan: Vec<Methods<T>>,
+    plan: Vec<Methods>,
 }
 
 #[derive(Clone)]
-pub enum Methods<T> {
+pub enum Methods {
     Select(Vec<String>),
     Count,
     Collect,
     Sum,
-    Filter(fn(&Row<T>) -> bool),
+    Filter(String),
 }
 
 #[derive(Clone)]
@@ -74,9 +74,9 @@ impl<T: Debug + Clone> DataFrame<T> {
     }
 
     //Transformation
-    pub fn filter(&mut self, condition: fn(&Row<T>) -> bool) -> DataFrame<T> {
+    pub fn filter(&mut self, condition: &str) -> DataFrame<T> {
 
-        let action: Methods<T> = Methods::Filter(condition);
+        let action: Methods = Methods::Filter(condition.to_string());
         self.plan.push(action);
         
         DataFrame {
@@ -121,15 +121,12 @@ impl<T: Debug + Clone> DataFrame<T> {
                 }
                 Methods::Filter(_func) => {
                     debug!("Methods:Filter");
-                    // let closure_bytes = serialize_filter(func);
-                    // let serialized = serde_cbor::to_vec(&func).unwrap();
-                    todo!();
-                    // stage = Stage {
-                    //     id: index.to_owned().to_string(),
-                    //     stage_type: Some(StageType::Filter(Filter {
-                    //         predicate: closure_bytes.to_vec(),
-                    //     })),
-                    // };
+                    stage = Stage {
+                        id: index.to_owned().to_string(),
+                        stage_type: Some(StageType::Filter(Filter {
+                            predicate: _func.to_owned(),
+                        })),
+                    };
                 }
                 Methods::Select(select_vec) => {
                     debug!("Methods:Select");

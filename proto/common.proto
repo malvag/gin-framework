@@ -19,7 +19,7 @@ message Stage {
 }
 
 message Filter {
-    bytes predicate = 1;
+    string predicate = 1;
 }
 
 message Select {

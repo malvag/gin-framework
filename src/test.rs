@@ -8,6 +8,7 @@ use gin::common::context::GinContext;
 // use scheduler::proto::Stage;
 // use gin::Job;
 
+use gin::common::dataframe::DataFrame;
 use gin::scheduler::proto::CheckExecutorsRequest;
 
 
@@ -15,7 +16,6 @@ use gin::scheduler::proto::CheckExecutorsRequest;
 
 #[tokio::main]
 async fn main() -> Result<(), Box<dyn std::error::Error>> {
-    // let mut client = GinSchedulerServiceClient::connect("http://127.0.0.1:50051").await?;
     let gtx = GinContext::get_instance();
     let response = gtx
         .scheduler
@@ -23,7 +23,7 @@ async fn main() -> Result<(), Box<dyn std::error::Error>> {
         .await?;
 
 
-    // let mut test = DataFrame::new();    
+    let mut df:DataFrame<f64> = DataFrame::new();    
 
     println!("Response: {:?}", response.get_ref().executor_status);
     
@@ -34,7 +34,9 @@ async fn main() -> Result<(), Box<dyn std::error::Error>> {
     // df.sum();
     // println!("Plan after sum call: {:?}", df.plan);
 
-    // df.filter(|row| row.cols[0] > 2);
+    // let result = df.filter("x > 2").select(["col1".to_string()].to_vec()).count();
+    let result = df.count();
+    println!("{}",result);
     // println!("Plan after filter call: {:?}", df.plan);
 
     // df.count();

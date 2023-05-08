@@ -2,10 +2,15 @@ use log::info;
 use gin::executor::service::GinExecutor;
 use gin::executor::proto::gin_executor_service_server::GinExecutorServiceServer;
 use tonic::transport::Server;
+use std::env;
 
 #[tokio::main]
 async fn main() -> Result<(), Box<dyn std::error::Error>> {
     env_logger::init();
+    let args: Vec<String> = env::args().collect();
+
+    let port = &args[1].parse::<i32>().unwrap();
+
     info!("Executor started");
     let _executor = GinExecutor::new(
         "1".to_owned(),

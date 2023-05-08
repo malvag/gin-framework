@@ -9,11 +9,13 @@ use futures::executor::block_on;
 use log::info;
 
 use tonic::{Request, Response, Status};
+use log::error;
+use rhai::{Engine, Locked};
+use std::cell::RefCell;
+
 struct TranformationEngine {
     engine: rhai::Engine,
 }
-use log::error;
-use rhai::{Engine};
 
 impl TranformationEngine {
     pub fn new() -> Self {
@@ -51,14 +53,12 @@ impl TranformationEngine {
         scope.get_value::<bool>("_internal").unwrap()
     }
 }
-
 #[derive(Debug)]
 pub struct GinExecutor {
     id: String,
     hostname: String,
     scheduler_uri: String,
-    port: i32,
-    connected: bool,
+    port: i32
 }
 
 impl GinExecutor {
@@ -67,9 +67,7 @@ impl GinExecutor {
             id,
             hostname,
             scheduler_uri,
-            port,
-            connected: true,
-        };
+            port,        };
         ob._attach_to_scheduler();
         ob
     }
@@ -88,6 +86,7 @@ impl GinExecutor {
             Ok(_) => {}
             Err(error) => panic!("Problem registering scheduler: {:?}", error),
         };
+
         info!("Registered to scheduler");
     }
 }
@@ -106,30 +105,30 @@ impl GinExecutorService for GinExecutor {
         // self._launch_task(request).await
 
         info!("Task launched");
-        let execution = _request.get_ref().clone();
-        for plan_step in execution.plan {
-            let step = match plan_step.stage_type {
-                Some(stype) => stype,
-                None => {
-                    return Err(Status::aborted(
-                        "Failed launching task on executor. Corrupted state?",
-                    ));
-                }
-            };
-            match step {
-                StageType::Filter(_filter) => {
-                    todo!();
-                }
+        // let execution = _request.get_ref().clone();
+        // for plan_step in execution.plan {
+        //     let step = match plan_step.stage_type {
+        //         Some(stype) => stype,
+        //         None => {
+        //             return Err(Status::aborted(
+        //                 "Failed launching task on executor. Corrupted state?",
+        //             ));
+        //         }
+        //     };
+        //     match step {
+        //         StageType::Filter(_filter) => {
+        //             todo!();
+        //         }
 
-                StageType::Select(_columns) => {
-                    todo!();
-                }
+        //         StageType::Select(_columns) => {
+        //             todo!();
+        //         }
 
-                StageType::Action(_action) => {
-                    todo!();
-                }
-            }
-        }
+        //         StageType::Action(_action) => {
+        //             todo!();
+        //         }
+        //     }
+        // }
         // test
         let demo_result: f64 = 10.0;
         let demo_response = LaunchTaskResponse {
