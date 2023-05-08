@@ -1,25 +1,28 @@
-use log::info;
+use log::{info,error};
 use gin::executor::service::GinExecutor;
 use gin::executor::proto::gin_executor_service_server::GinExecutorServiceServer;
 use tonic::transport::Server;
 use std::env;
+use std::process::exit;
+use std::net::{SocketAddr, ToSocketAddrs};
 
 #[tokio::main]
 async fn main() -> Result<(), Box<dyn std::error::Error>> {
     env_logger::init();
     let args: Vec<String> = env::args().collect();
 
-    let port = &args[1].parse::<i32>().unwrap();
-
+    let executor = &args[1].to_owned();
+    let executor_socket = executor.to_socket_addrs().unwrap().next().unwrap();
+    let scheduler = &args[2].to_owned();
+    let scheduler_socket = scheduler.to_socket_addrs().unwrap().next().unwrap();
     info!("Executor started");
     let _executor = GinExecutor::new(
-        "1".to_owned(),
-        "127.0.0.1".to_owned(),
-        50052,
-        "http://127.0.0.1:50051".to_owned(),
+        1,
+        executor_socket,
+        scheduler_socket
     );
-    let addr = "127.0.0.1:50052".parse()?;
+
     let svc = GinExecutorServiceServer::new(_executor);
-    Server::builder().add_service(svc).serve(addr).await?;
+    Server::builder().add_service(svc).serve(executor_socket).await?;
     Ok(())
 }

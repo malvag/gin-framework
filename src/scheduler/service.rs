@@ -252,7 +252,18 @@ impl GinSchedulerService for Scheduler {
         &self,
         _request: Request<UnregisterExecutorRequest>,
     ) -> Result<Response<UnregisterExecutorResponse>, Status> {
-        todo!()
+        let uri = _request.get_ref().clone();
+
+        // Add the executor to the list of connected executors
+        let mut executors = self.executors.lock().unwrap();
+        executors.remove(&uri.executor_uri.to_owned());
+
+        let response = UnregisterExecutorResponse { success: true };
+        info!(
+            "Executor {} disconnected!",
+            _request.get_ref().executor_uri.clone()
+        );
+        Ok(Response::new(response))
     }
 
     async fn submit_job(
