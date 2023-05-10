@@ -13,47 +13,9 @@ use log::error;
 use rhai::{Engine, Locked};
 use std::cell::RefCell;
 use std::net::SocketAddr;
+use eval::eval;
+use eval::Value;
 
-struct TranformationEngine {
-    engine: rhai::Engine,
-}
-
-impl TranformationEngine {
-    pub fn new() -> Self {
-        let engine = Engine::new();
-        TranformationEngine { engine }
-    }
-    pub fn run_filter(&self, filter_fn: &str, element: f64) -> bool {
-        let mut scope = rhai::Scope::new();
-        let prescript = "_internal = ";
-        let script = prescript.to_owned() + filter_fn; // " x < 5"
-
-        let ast = match self.engine.compile(&script) {
-            Ok(ast) => ast,
-            Err(e) => {
-                error!("Wrong filter function {}", e);
-                return false;
-            }
-        };
-        scope.push("_internal", false);
-        scope.push("x", element);
-
-        // Evaluate it and panic otherwise
-        match self.engine.run_ast_with_scope(&mut scope, &ast) {
-            Ok(_) => {},
-            Err(e) => {
-                error!("Error processing element through the filter function: {}", e);
-                return false;
-            }
-        }
-
-
-        // debug!("{}", scope.get_value::<bool>("_internal").unwrap());
-
-
-        scope.get_value::<bool>("_internal").unwrap()
-    }
-}
 #[derive(Debug)]
 pub struct GinExecutor {
     id: i32,
@@ -71,6 +33,16 @@ impl GinExecutor {
         ob._attach_to_scheduler();
         ob
     }
+
+    fn filter(&self,closure_string: &str, x: f64) -> Result<bool, Box<dyn std::error::Error>> {
+
+        let result: bool = match eval(closure_string).unwrap() {
+            Value::Bool(num) => num.to_owned(),
+            _ => todo!()
+        };
+        Ok(result)
+    }
+    
     pub fn get_uri(&self) -> String{
         format!("http://{}:{}",self.address.ip(),self.address.port())
     }
@@ -153,6 +125,13 @@ impl GinExecutorService for GinExecutor {
         //     }
         // }
         // test
+
+        let x = 6.0;
+        let closure_string = "x < 2";
+        let result = self.filter(closure_string,x).unwrap();
+
+        assert_eq!(result, false);
+
         let demo_result: f64 = 10.0;
         let demo_response = LaunchTaskResponse {
             executor_id: 0,
