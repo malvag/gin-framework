@@ -1,4 +1,4 @@
-use crate::common::common::stage::StageType;
+
 use crate::executor::proto::{
     gin_executor_service_server::GinExecutorService, Empty, LaunchTaskRequest, LaunchTaskResponse,
 };
@@ -9,9 +9,9 @@ use futures::executor::block_on;
 use log::{info,debug};
 
 use tonic::{Request, Response, Status};
-use log::error;
-use rhai::{Engine, Locked};
-use std::cell::RefCell;
+
+
+
 use std::net::SocketAddr;
 use eval::eval;
 use eval::Value;
@@ -34,7 +34,7 @@ impl GinExecutor {
         ob
     }
 
-    fn filter(&self,closure_string: &str, x: f64) -> Result<bool, Box<dyn std::error::Error>> {
+    fn filter(&self,closure_string: &str, _x: f64) -> Result<bool, Box<dyn std::error::Error>> {
 
         let result: bool = match eval(closure_string).unwrap() {
             Value::Bool(num) => num.to_owned(),
@@ -124,14 +124,15 @@ impl GinExecutorService for GinExecutor {
         //         }
         //     }
         // }
-        // test
 
+
+        // demo filter
         let x = 6.0;
         let closure_string = "x < 2";
         let result = self.filter(closure_string,x).unwrap();
 
         assert_eq!(result, false);
-
+            // demo answer
         let demo_result: f64 = 10.0;
         let demo_response = LaunchTaskResponse {
             executor_id: 0,

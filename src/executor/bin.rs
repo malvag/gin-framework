@@ -1,10 +1,10 @@
-use log::{info,error};
+use log::{info};
 use gin::executor::service::GinExecutor;
 use gin::executor::proto::gin_executor_service_server::GinExecutorServiceServer;
 use tonic::transport::Server;
 use std::env;
-use std::process::exit;
-use std::net::{SocketAddr, ToSocketAddrs};
+
+use std::net::{ToSocketAddrs};
 
 #[tokio::main]
 async fn main() -> Result<(), Box<dyn std::error::Error>> {
