@@ -3,6 +3,7 @@ name = "gin"
 version = "0.0.1"
 authors = ["Evangelos Maliaroudakis", "Giannis Melidonis", "Alexandra Alexandridi"]
 edition = "2021"
+default-run = "client"
 
 
 [dependencies]
