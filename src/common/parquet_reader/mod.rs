@@ -1,5 +1,5 @@
-use std::{error::Error, sync::Arc};
-use futures::future::{Future, BoxFuture};
+use std::error::Error;
+use futures::future::BoxFuture;
 use regex::Regex;
 
 use s3::{
@@ -11,15 +11,14 @@ use s3::{
 use range_reader::{ RangedAsyncReader, RangeOutput };
 
 use arrow2::io::parquet::{
-    read,
+    read::{self, RowGroupDeserializer},
     write::FileMetaData,
 };
 
 use crate::common::common::S3Configuration;
 
 pub struct ParquetReader {
-    reader_factory: Box<dyn Fn() -> BoxFuture<'static, Result<RangedAsyncReader, std::io::Error>> + Send + 'static>,
-    reader: RangedAsyncReader,
+    reader_factory: Box<dyn Fn() -> BoxFuture<'static, Result<RangedAsyncReader, std::io::Error>> + Send + Sync + 'static>,
 }
 
 impl ParquetReader {
@@ -63,6 +62,7 @@ impl ParquetReader {
         });
 
         let min_request_size = 4 * 1024;
+
         // reader_factory
         let reader_factory = move || {
             Box::pin(futures::future::ready(Ok(RangedAsyncReader::new(
@@ -72,12 +72,9 @@ impl ParquetReader {
             )))) as BoxFuture<'static, std::result::Result<RangedAsyncReader, std::io::Error>>
         };
 
-        let reader = reader_factory().await?;
-
-        Ok(ParquetReader { reader_factory: Box::new(reader_factory), reader })
+        Ok(ParquetReader { reader_factory: Box::new(reader_factory) })
     }
 
-    // Note: try send metadata to executors + rowgroup number
     pub async fn read_metadata(&self) -> Result<FileMetaData, Box<dyn Error>> {
         let mut reader = (self.reader_factory)().await?;
         let metadata = read::read_metadata_async(&mut reader).await?;
