@@ -81,8 +81,25 @@ impl ParquetReader {
         Ok(metadata)
     }
 
-    pub async fn read_chunk(&self, index: usize) {
+    pub async fn read_row_group_deser(&self, index: usize) -> Result<RowGroupDeserializer, Box<dyn Error>> {
+        let mut reader = (self.reader_factory)().await?;
+        let metadata = read::read_metadata_async(&mut reader).await?;
 
+        let schema = read::infer_schema(&metadata)?;
+        let group = &metadata.row_groups[index];
+
+        let column_chunks = read::read_columns_many_async(
+            self.reader_factory.as_ref().clone(),
+            group,
+            schema.fields.clone(),
+            None,
+            None,
+            None,
+        ).await?;
+
+        let row_group_deser = read::RowGroupDeserializer::new(column_chunks, group.num_rows(), None);
+
+        Ok(row_group_deser)
     }
 
     // TODO: wrong uri error

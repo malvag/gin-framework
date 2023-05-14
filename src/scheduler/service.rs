@@ -129,7 +129,8 @@ impl Scheduler {
                     executor_id: i32::abs(i.try_into().unwrap()),
                     plan: _request_copy.plan.clone(),
                     dataset_uri: _request_copy.dataset_uri.to_owned(),
-                    partition_index: 0, // TODO: cahnge to row_group read from metadata.
+                    s3_conf: _request_copy.s3_conf.clone(),
+                    partition_index: i as u32, // TODO: cahnge to row_group read from metadata.
                 };
 
                 let _response = match rt.block_on(client.launch_task(submit_task)) {

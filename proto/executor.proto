@@ -18,7 +18,8 @@ message LaunchTaskRequest {
   int32 executor_id = 1;
   repeated common.Stage plan = 2;
   string dataset_uri = 3;
-  uint32 partition_index = 4;
+  common.S3Configuration s3_conf = 4;
+  uint32 partition_index = 5;
 }
 
 message LaunchTaskResponse {
