@@ -11,10 +11,12 @@ use crate::scheduler::proto::gin_scheduler_service_client::GinSchedulerServiceCl
 // use gin::Job;
 // use dataframe::{Row, DataFrame,read_from_csv};
 
+use crate::common::common::S3Configuration;
 
 use log::error;
 pub struct GinContext {
     pub scheduler: GinSchedulerServiceClient<tonic::transport::Channel>,
+    s3_config: Option<S3Configuration>,
     // application: Vec<Job>,
 }
 
@@ -30,6 +32,7 @@ impl GinContext {
                 Ok(scheduler) => {
                     INSTANCE = Box::into_raw(Box::new(GinContext {
                         scheduler,
+                        s3_config: None,
                     }));
                 }
                 Err(_) => {
@@ -38,5 +41,14 @@ impl GinContext {
             }
         });
         unsafe { &mut *INSTANCE }
+    }
+
+    pub fn with_s3(&'static mut self, s3_config: S3Configuration) -> &'static mut Self {
+        self.s3_config = Some(s3_config);
+        self
+    }
+
+    pub fn get_s3_config(&'static self) -> S3Configuration {
+        self.s3_config.clone().unwrap()
     }
 }

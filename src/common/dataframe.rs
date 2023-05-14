@@ -1,6 +1,7 @@
 
 use crate::scheduler::proto::SubmitJobRequest;
 use crate::common::common::{ActionType, Select, Stage, Filter};
+use crate::common::context::GinContext;
 use log::{debug, error};
 use crate::common::common::stage::StageType;
 
@@ -141,13 +142,15 @@ impl<T: Debug + Clone> DataFrame<T> {
             stage_vec.push(stage);
             index += 1;
         }
+        let gtx = GinContext::get_instance();
         let stage_vec_clone = stage_vec.clone();
         //send execution graph to scheduler
         let request = SubmitJobRequest {
             dataset_uri: self.uri.to_owned(),
             plan: stage_vec,
+            s3_conf: Some(gtx.get_s3_config()),
         };
-        match block_on(crate::common::context::GinContext::get_instance().scheduler.submit_job(request)) {
+        match block_on(GinContext::get_instance().scheduler.submit_job(request)) {
             Ok(response) => {
                 debug!("Success");
                 let action_stage = match stage_vec_clone.last() {

@@ -26,6 +26,9 @@ use std::sync::atomic::{AtomicUsize, Ordering};
 
 use crate::common::common::stage::StageType;
 
+use crate::common::parquet_reader::ParquetReader;
+
+use arrow2::io::parquet::read;
 pub struct IdGenerator {
     next_id: AtomicUsize,
 }
@@ -65,7 +68,7 @@ impl Scheduler {
     }
     
 
-    fn sync_send_launch(
+    async fn sync_send_launch(
         &self,
         _request: Request<SubmitJobRequest>,
     ) -> Result<Response<SubmitJobResponse>, Status> {
@@ -81,6 +84,12 @@ impl Scheduler {
         let (tx, rx) = mpsc::channel::<()>();
         // Create a channel for results with a buffer size of the number of workers
         let (result_tx, result_rx) = mpsc::channel::<Result<LaunchTaskResponse, String>>(); //executors_copy.len()
+
+        let s3_config = _request.get_ref().to_owned().s3_conf.unwrap();
+        println!("{:#?}", s3_config);
+
+        let mut s3r = ParquetReader::new(&s3_config, &_request.get_ref().to_owned().dataset_uri).await.unwrap();
+        s3r.read_metadata().await;
 
         // Number of worker threads
         for i in 0..executors_copy.clone().len() {
@@ -287,7 +296,7 @@ impl GinSchedulerService for Scheduler {
             }
         }
 
-        self.sync_send_launch(_request)
+        self.sync_send_launch(_request).await
     }
 
     async fn check_executors(

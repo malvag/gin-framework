@@ -40,6 +40,7 @@ message UnregisterExecutorResponse {
 message SubmitJobRequest {
     repeated common.Stage plan = 1;
     string dataset_uri = 2;
+    common.S3Configuration s3_conf = 3;
 }
 
 message SubmitJobResponse {
