@@ -26,7 +26,7 @@ use std::sync::atomic::{AtomicUsize, Ordering};
 
 use crate::common::common::stage::StageType;
 
-use crate::common::parquet_reader::ParquetReader;
+use crate::common::parquet_reader::{ParquetReader, self};
 
 use arrow2::io::parquet::read;
 pub struct IdGenerator {
@@ -86,10 +86,21 @@ impl Scheduler {
         let (result_tx, result_rx) = mpsc::channel::<Result<LaunchTaskResponse, String>>(); //executors_copy.len()
 
         let s3_config = _request.get_ref().to_owned().s3_conf.unwrap();
-        println!("{:#?}", s3_config);
+        
+        // BUG: ...
+        // let metadata = async {
+        //     let rt = Runtime::new().unwrap();
+        //     let parquet_reader = rt.block_on(ParquetReader::new(&s3_config, &_request.get_ref().to_owned().dataset_uri)).unwrap();
+        //     rt.block_on(parquet_reader.read_metadata()).unwrap()
+        // };
+        let parquet_reader = ParquetReader::new(&s3_config, &_request.get_ref().to_owned().dataset_uri).await.unwrap();
+        let metadata = match parquet_reader.read_metadata().await {
+            Ok(meta) => meta,
+            Err(_) => return Err(Status::aborted("Read metadata failed.")),
+        };
 
-        let mut s3r = ParquetReader::new(&s3_config, &_request.get_ref().to_owned().dataset_uri).await.unwrap();
-        s3r.read_metadata().await;
+        println!("Version: {}", metadata.version);
+        println!("Rows: {}", metadata.num_rows);
 
         // Number of worker threads
         for i in 0..executors_copy.clone().len() {
@@ -127,6 +138,7 @@ impl Scheduler {
                     executor_id: i32::abs(i.try_into().unwrap()),
                     plan: _request_copy.plan.clone(),
                     dataset_uri: _request_copy.dataset_uri.to_owned(),
+                    partition_index: 0, // TODO: cahnge to row_group read from metadata.
                 };
 
                 let _response = match rt.block_on(client.launch_task(submit_task)) {

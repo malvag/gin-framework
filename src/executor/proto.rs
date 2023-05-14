@@ -7,6 +7,8 @@ pub struct LaunchTaskRequest {
     pub plan: ::prost::alloc::vec::Vec<crate::common::common::Stage>,
     #[prost(string, tag = "3")]
     pub dataset_uri: ::prost::alloc::string::String,
+    #[prost(uint32, tag = "4")]
+    pub partition_index: u32,
 }
 #[allow(clippy::derive_partial_eq_without_eq)]
 #[derive(Clone, PartialEq, ::prost::Message)]
