@@ -10,10 +10,10 @@ use s3::{
 
 use range_reader::{ RangedAsyncReader, RangeOutput };
 
-use arrow2::io::parquet::{
-    read::{self, RowGroupDeserializer},
-    write::FileMetaData,
-};
+use arrow2::{io::parquet::{
+    read::{self, RowGroupDeserializer, ColumnChunkMetaData},
+    write::{FileMetaData, ParquetType},
+}, datatypes::{Field, DataType}};
 
 use crate::common::common::S3Configuration;
 
@@ -81,22 +81,58 @@ impl ParquetReader {
         Ok(metadata)
     }
 
-    pub async fn read_row_group_deser(&self, index: usize) -> Result<RowGroupDeserializer, Box<dyn Error>> {
+    pub fn convert_parquet_to_arrow(parquet_type: &ParquetType) -> Field {
+        // Convert the Parquet type to the corresponding Arrow DataType
+        let data_type = match parquet_type {
+            ParquetType::PrimitiveType(pt) =>{
+                match pt.physical_type{
+                    arrow2::io::parquet::write::ParquetPhysicalType::Boolean => todo!(),
+                    arrow2::io::parquet::write::ParquetPhysicalType::Int32 => DataType::Int32,
+                    arrow2::io::parquet::write::ParquetPhysicalType::Int64 => DataType::Int64,
+                    arrow2::io::parquet::write::ParquetPhysicalType::Int96 => todo!(),
+                    arrow2::io::parquet::write::ParquetPhysicalType::Float => todo!(),
+                    arrow2::io::parquet::write::ParquetPhysicalType::Double => todo!(),
+                    arrow2::io::parquet::write::ParquetPhysicalType::ByteArray => todo!(),
+                    arrow2::io::parquet::write::ParquetPhysicalType::FixedLenByteArray(_) => todo!(),
+                }
+            }
+            // Add more cases for other Parquet types as needed
+            _ => unimplemented!("Unsupported Parquet type: {:?}", parquet_type),
+        };
+    
+        // Create the Arrow Field using the converted DataType and the name from the Parquet type
+        Field::new(parquet_type.name().to_string(), data_type, false)
+    }
+
+    pub async fn read_row_group_deser(&self, index: usize, fields: Option<Vec<Field>>) -> Result<RowGroupDeserializer, Box<dyn Error>> {
         let mut reader = (self.reader_factory)().await?;
         let metadata = read::read_metadata_async(&mut reader).await?;
 
         let schema = read::infer_schema(&metadata)?;
         let group = &metadata.row_groups[index];
 
-        let column_chunks = read::read_columns_many_async(
-            self.reader_factory.as_ref().clone(),
-            group,
-            schema.fields.clone(),
-            None,
-            None,
-            None,
-        ).await?;
-
+        let column_chunks = match fields{
+            Some(fields) => {
+                read::read_columns_many_async(
+                    self.reader_factory.as_ref().clone(),
+                    group,
+                    fields,
+                    None,
+                    None,
+                    None,
+                ).await?
+            }
+            None => {
+                read::read_columns_many_async(
+                    self.reader_factory.as_ref().clone(),
+                    group,
+                    schema.fields.clone(),
+                    None,
+                    None,
+                    None,
+                ).await?
+            }
+        };
         let row_group_deser = read::RowGroupDeserializer::new(column_chunks, group.num_rows(), None);
 
         Ok(row_group_deser)
