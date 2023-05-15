@@ -21,6 +21,18 @@ pub mod stage {
 }
 #[allow(clippy::derive_partial_eq_without_eq)]
 #[derive(Clone, PartialEq, ::prost::Message)]
+pub struct S3Configuration {
+    #[prost(string, tag = "1")]
+    pub region: ::prost::alloc::string::String,
+    #[prost(string, tag = "2")]
+    pub endpoint: ::prost::alloc::string::String,
+    #[prost(string, tag = "3")]
+    pub access_key: ::prost::alloc::string::String,
+    #[prost(string, tag = "4")]
+    pub secret_key: ::prost::alloc::string::String,
+}
+#[allow(clippy::derive_partial_eq_without_eq)]
+#[derive(Clone, PartialEq, ::prost::Message)]
 pub struct Filter {
     #[prost(string, tag = "1")]
     pub predicate: ::prost::alloc::string::String,

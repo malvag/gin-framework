@@ -3,6 +3,7 @@ name = "gin"
 version = "0.0.1"
 authors = ["Evangelos Maliaroudakis", "Giannis Melidonis", "Alexandra Alexandridi"]
 edition = "2021"
+default-run = "client"
 
 
 [dependencies]
@@ -14,9 +15,19 @@ prost = "0.11.8"
 rand = "0.8.5"
 rhai = "1.14.0"
 serde_cbor = "0.11.2"
-tokio = { version = "1.27.0" , features = ["rt-multi-thread", "macros"]}
+tokio = { version = "1.27.0" , features = ["full"]}
 tonic = "0.9.1"
 tonic-reflection = "0.9.1"
+
+regex = "1.8.1"
+
+# s3
+openssl = { version = "0.10", features = ["vendored"]}
+rust-s3 = { version = "0.33.0", features = ["tokio"] }
+range-reader = "0.2.0"
+
+# Parquet
+arrow2 = { version = "0.17.0", features = ["io_parquet", "io_parquet_compression"]}
 
 [build-dependencies]
 tonic-build = "0.9.1"

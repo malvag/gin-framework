@@ -18,6 +18,13 @@ message Stage {
     // repeated string dependencies = 7;
 }
 
+message S3Configuration {
+    string region = 1;
+    string endpoint = 2;
+    string access_key = 3;
+    string secret_key = 4;
+}
+
 message Filter {
     string predicate = 1;
 }

@@ -1,4 +1,5 @@
 
+use crate::common::parquet_reader::ParquetReader;
 use crate::executor::proto::{
     gin_executor_service_server::GinExecutorService, Empty, LaunchTaskRequest, LaunchTaskResponse,
 };
@@ -95,11 +96,21 @@ impl GinExecutorService for GinExecutor {
 
     async fn launch_task(
         &self,
-        _request: Request<LaunchTaskRequest>,
+        request: Request<LaunchTaskRequest>,
     ) -> Result<Response<LaunchTaskResponse>, Status> {
         // self._launch_task(request).await
 
         info!("Task launched");
+        let request = request.get_ref().clone();
+        let s3_conf = request.s3_conf.unwrap();
+        let dataset_uri = request.dataset_uri;
+        let index = request.partition_index;
+        let parquet_reader = ParquetReader::new(&s3_conf, &dataset_uri).await.unwrap();
+        let row_grp_deser = parquet_reader.read_row_group_deser(index as usize).await.unwrap();
+        let chunk = row_grp_deser.into_iter().next().unwrap().expect("Failed to load Chunk.");
+
+        info!("[executor:{}] Read chunk: [{}] with {} rows.", self.id, index, chunk.len());
+
         // let execution = _request.get_ref().clone();
         // for plan_step in execution.plan {
         //     let step = match plan_step.stage_type {

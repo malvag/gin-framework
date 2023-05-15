@@ -26,6 +26,7 @@ use std::sync::atomic::{AtomicUsize, Ordering};
 
 use crate::common::common::stage::StageType;
 
+use crate::common::parquet_reader::ParquetReader;
 pub struct IdGenerator {
     next_id: AtomicUsize,
 }
@@ -65,7 +66,7 @@ impl Scheduler {
     }
     
 
-    fn sync_send_launch(
+    async fn sync_send_launch(
         &self,
         _request: Request<SubmitJobRequest>,
     ) -> Result<Response<SubmitJobResponse>, Status> {
@@ -81,6 +82,16 @@ impl Scheduler {
         let (tx, rx) = mpsc::channel::<()>();
         // Create a channel for results with a buffer size of the number of workers
         let (result_tx, result_rx) = mpsc::channel::<Result<LaunchTaskResponse, String>>(); //executors_copy.len()
+
+        let s3_config = _request.get_ref().to_owned().s3_conf.unwrap();
+
+        let parquet_reader = ParquetReader::new(&s3_config, &_request.get_ref().to_owned().dataset_uri).await.unwrap();
+        let metadata = match parquet_reader.read_metadata().await {
+            Ok(meta) => meta,
+            Err(_) => return Err(Status::aborted("Read metadata failed.")),
+        };
+
+        info!("Read Parquet: {{ version: {}, rows: {} }}", metadata.version, metadata.num_rows);
 
         // Number of worker threads
         for i in 0..executors_copy.clone().len() {
@@ -118,6 +129,8 @@ impl Scheduler {
                     executor_id: i32::abs(i.try_into().unwrap()),
                     plan: _request_copy.plan.clone(),
                     dataset_uri: _request_copy.dataset_uri.to_owned(),
+                    s3_conf: _request_copy.s3_conf.clone(),
+                    partition_index: i as u32, // TODO: cahnge to row_group read from metadata.
                 };
 
                 let _response = match rt.block_on(client.launch_task(submit_task)) {
@@ -287,7 +300,7 @@ impl GinSchedulerService for Scheduler {
             }
         }
 
-        self.sync_send_launch(_request)
+        self.sync_send_launch(_request).await
     }
 
     async fn check_executors(

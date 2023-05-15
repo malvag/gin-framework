@@ -44,6 +44,8 @@ pub struct SubmitJobRequest {
     pub plan: ::prost::alloc::vec::Vec<crate::common::common::Stage>,
     #[prost(string, tag = "2")]
     pub dataset_uri: ::prost::alloc::string::String,
+    #[prost(message, optional, tag = "3")]
+    pub s3_conf: ::core::option::Option<crate::common::common::S3Configuration>,
 }
 #[allow(clippy::derive_partial_eq_without_eq)]
 #[derive(Clone, PartialEq, ::prost::Message)]
