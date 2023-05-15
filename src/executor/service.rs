@@ -10,8 +10,9 @@ use futures::executor::block_on;
 
 use log::{debug, error, info};
 
+use rand::seq::index;
 use tonic::{Request, Response, Status};
-use arrow2::array::new_empty_array;
+use arrow2::array::{new_empty_array, BooleanArray};
 use crate::common::common::stage::StageType;
 use arrow2::array::{PrimitiveArray, MutableArray, Int64Vec};
 use arrow2::array::{Array, Int64Array};
@@ -22,6 +23,7 @@ use arrow2::datatypes::SchemaRef;
 use arrow2::datatypes::{Field, Schema};
 use arrow2::io::parquet::read;
 use arrow2::io::parquet::write::{FileMetaData, ParquetType};
+use arrow2::compute::filter::filter_chunk;
 use eval::eval;
 use eval::Value;
 use std::collections::HashSet;
@@ -120,31 +122,26 @@ impl GinExecutor {
             .position(|x| x.name() == tokens[0]).unwrap();
 
         let column = chunk.columns().clone().get(field_index).unwrap();
+        // NOTE: Works only if the array is Int64Array
         let int_array = match column.as_any().downcast_ref::<Int64Array>() {
             Some(arr) => arr,
             None => panic!(),
         };
         debug!("New column with len {}", int_array.len());
-        // println!("int_array={:#?}", int_array);
-        let mut result  = Vec::new();
+
+        let mut filter_res  = vec![];
         for i in 0..int_array.len() {
             if i % 1000000 == 0 {
                 debug!("Entry checkpoint {}", i);
             }
             let value = int_array.value(i);
-            // let x = value;
-            if !(GinExecutor::evaluate_filter(&tokens, value).unwrap()) {
-                // indexes.push(i);
-                match chunk.get(i){
-                    Some(a) => result.push(a.clone()),
-                    None => continue
-                }
-            }
+
+            filter_res.push(GinExecutor::evaluate_filter(&tokens, value).unwrap())
         }
-        debug!("{}",result.len());
-        // Create ChunkB from the new arrays
+
+        let filter_values = BooleanArray::from_iter(filter_res.into_iter().map(|val| Some(val)));
        
-        Ok(Chunk::new(result))
+        Ok(filter_chunk(chunk, &filter_values).unwrap())
     }
 
     pub fn get_uri(&self) -> String {
@@ -252,9 +249,9 @@ impl GinExecutorService for GinExecutor {
                     ));
                 }
             };
-            let mut stats_plan_processing_started = Instant::now();
+            let mut _stats_plan_processing_started = Instant::now();
             let mut stats_chunks_processed = 0;
-            let mut stats_plan_processing_elapsed: std::time::Duration = Duration::default();
+            let mut _stats_plan_processing_elapsed: std::time::Duration = Duration::default();
             match step {
                 StageType::Filter(_filter) => {
                     let mut _intermediate = Vec::new();
@@ -272,9 +269,8 @@ impl GinExecutorService for GinExecutor {
                         }
                         stats_chunks_processed = stats_chunks_processed + 1;
                     }
-                    step_input = Vec::new();
                     step_input = _intermediate.clone();
-                    stats_plan_processing_elapsed = stats_plan_processing_started.elapsed();
+                    _stats_plan_processing_elapsed = _stats_plan_processing_started.elapsed();
                 }
 
                 StageType::Select(_columns) => {

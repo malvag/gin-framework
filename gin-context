@@ -11,6 +11,7 @@ case "$1" in
 
     # Start Gin Executors
     cargo run --quiet --bin executor -- 127.0.0.1:50052 $SCHEDULER_ENDPOINT 2>/dev/null &
+    # Note: hard-code 3 more executors or make a loop and take the number as a script-argument
 
     printf "Welcome to $NAME_ICON\n"
     printf "Gin Context available at http://$SCHEDULER_ENDPOINT\n"

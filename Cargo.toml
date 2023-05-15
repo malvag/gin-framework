@@ -27,7 +27,7 @@ rust-s3 = { version = "0.33.0", features = ["tokio"] }
 range-reader = "0.2.0"
 
 # Parquet
-arrow2 = { version = "0.17.0", features = ["io_parquet", "io_parquet_compression"]}
+arrow2 = { version = "0.17.0", features = ["io_parquet", "io_parquet_compression", "compute_filter"]}
 
 [build-dependencies]
 tonic-build = "0.9.1"
