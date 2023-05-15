@@ -1,0 +1,26 @@
+#! /bin/bash
+
+NAME_ICON='Gin \U1F378'
+SCHEDULER_ENDPOINT='127.0.0.1:50051'
+executor_port_start=50052
+
+case "$1" in
+'start')
+    # Start Gin Scheduler
+    cargo run --quiet --bin scheduler 2>/dev/null &
+
+    # Start Gin Executors
+    cargo run --quiet --bin executor -- 127.0.0.1:50052 $SCHEDULER_ENDPOINT 2>/dev/null &
+
+    printf "Welcome to $NAME_ICON\n"
+    printf "Gin Context available at http://$SCHEDULER_ENDPOINT\n"
+    ;;
+'stop')
+    pkill scheduler && pkill executor
+    printf "$NAME_ICON has stopped.\n"
+    ;;
+*)
+    echo "Wrong call! Usage: $0 { start | stop }"
+    exit 1
+    ;;
+esac

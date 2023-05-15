@@ -36,7 +36,7 @@ impl GinContext {
                     }));
                 }
                 Err(_) => {
-                    error!("Could not connect to scheduler");
+                    panic!("Could not connect to scheduler");
                 }
             }
         });
