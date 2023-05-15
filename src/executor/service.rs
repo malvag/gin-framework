@@ -248,9 +248,9 @@ impl GinExecutorService for GinExecutor {
             Ok(meta) => meta,
             _ => panic!(),
         };
-        for field in metadata.schema().fields() {
-            debug!("{}", field.name());
-        }
+        // for field in metadata.schema().fields() {
+        //     debug!("{}", field.name());
+        // }
 
         // let chunk = _initial_data.into_iter().next().unwrap().expect("Failed to load Chunk.");
         // debug!("[executor:{}] Read chunk: [{}] with {} rows.", self.id, index, chunk.len());
@@ -315,8 +315,8 @@ impl GinExecutorService for GinExecutor {
                         
                         for elem in tmp_data {
                             let chunk = elem.unwrap();
-                            let field_len = &chunk.clone().columns().len();
-                            debug!("selected ... and now the input has {} columns",field_len );
+                            // let field_len = &chunk.clone().columns().len();
+                            // debug!("selected ... and now the input has {} columns",field_len );
                             input.push(chunk)
                         }
                         input
@@ -359,10 +359,10 @@ impl GinExecutorService for GinExecutor {
                 }
                 
             }
-            debug!(
-                "{} chunks processed in {:.2?} seconds",
-                stats_chunks_processed, stats_plan_processing_elapsed
-            );
+            // debug!(
+            //     "{} chunks processed in {:.2?} seconds",
+            //     stats_chunks_processed, stats_plan_processing_elapsed
+            // );
         }
 
         // demo answer
