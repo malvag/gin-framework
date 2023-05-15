@@ -18,9 +18,9 @@ use gin::common::common::S3Configuration;
 async fn main() -> Result<(), Box<dyn std::error::Error>> {
     let s3_conf = S3Configuration {
         region: "".to_string(),
-        endpoint: "http://127.0.0.1:9000".to_string(),
-        access_key: "".to_string(),
-        secret_key: "".to_string(),
+        endpoint: "http://localhost:9000".to_string(),
+        access_key: "1JeWf0EmWzZboFDa".to_string(),
+        secret_key: "zjRu7hw9YkWucT9jyxzXgIYWC906euFs".to_string(),
     };
     let gtx = GinContext::get_instance().with_s3(s3_conf);
     let response = gtx
