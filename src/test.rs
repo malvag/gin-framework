@@ -41,8 +41,9 @@ async fn main() -> Result<(), Box<dyn std::error::Error>> {
 
     // df.sum();
     // println!("Plan after sum call: {:?}", df.plan);
+    let result = df.filter("VendorID > 1").count();
 
-    let result = df.select(["VendorID".to_owned()].to_vec()).count();
+    // let result = df.count();
     println!("{}",result);
     // println!("Plan after filter call: {:?}", df.plan);
 

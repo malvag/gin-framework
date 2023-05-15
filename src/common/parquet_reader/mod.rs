@@ -91,7 +91,7 @@ impl ParquetReader {
                     arrow2::io::parquet::write::ParquetPhysicalType::Int64 => DataType::Int64,
                     arrow2::io::parquet::write::ParquetPhysicalType::Int96 => todo!(),
                     arrow2::io::parquet::write::ParquetPhysicalType::Float => todo!(),
-                    arrow2::io::parquet::write::ParquetPhysicalType::Double => todo!(),
+                    arrow2::io::parquet::write::ParquetPhysicalType::Double => DataType::Float64,
                     arrow2::io::parquet::write::ParquetPhysicalType::ByteArray => todo!(),
                     arrow2::io::parquet::write::ParquetPhysicalType::FixedLenByteArray(_) => todo!(),
                 }

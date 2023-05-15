@@ -8,24 +8,24 @@ use crate::scheduler::proto::{RegisterExecutorRequest, UnregisterExecutorRequest
 use arrow2::io::parquet::read::{RowGroupDeserializer, RowGroupReader};
 use futures::executor::block_on;
 
-use log::{debug, info, error};
+use log::{debug, error, info};
 
 use tonic::{Request, Response, Status};
-
+use arrow2::array::new_empty_array;
 use crate::common::common::stage::StageType;
-use arrow2::array::PrimitiveArray;
+use arrow2::array::{PrimitiveArray, MutableArray, Int64Vec};
 use arrow2::array::{Array, Int64Array};
 use arrow2::bitmap::Bitmap;
 use arrow2::chunk::Chunk;
 use arrow2::datatypes::DataType;
 use arrow2::datatypes::SchemaRef;
 use arrow2::datatypes::{Field, Schema};
-use arrow2::io::parquet::write::FileMetaData;
+use arrow2::io::parquet::read;
+use arrow2::io::parquet::write::{FileMetaData, ParquetType};
 use eval::eval;
 use eval::Value;
 use std::collections::HashSet;
 use std::net::SocketAddr;
-use arrow2::io::parquet::read;
 use std::time::{Duration, Instant};
 #[derive(Debug)]
 pub struct GinExecutor {
@@ -93,11 +93,10 @@ impl GinExecutor {
     }
 
     fn evaluate_filter(
-        closure_string: &str,
+        tokens: &Vec<&str>,
         chunk_value: i64,
     ) -> Result<bool, Box<dyn std::error::Error>> {
         // println!("eval: {:?}", eval(closure_string).unwrap());
-        let tokens: Vec<&str> = closure_string.split_whitespace().collect();
         let result: bool =
             match eval(&format!("{} {} {}", chunk_value, tokens[1], tokens[2])).unwrap() {
                 Value::Bool(num) => num.to_owned(),
@@ -109,64 +108,43 @@ impl GinExecutor {
     fn filter(
         chunk: &Chunk<Box<dyn Array>>,
         closure_string: &str,
+        fields: &[ParquetType],
     ) -> Result<Chunk<Box<dyn Array>>, Box<dyn std::error::Error>> {
         // let clone = chunk.clone();
-        let mut indexes = vec![];
+        let tokens: Vec<&str> = closure_string.split_whitespace().collect();
 
         // chunk.columns()
+        debug!("0:{} 1:{} 2:{}",tokens[0],tokens[1],tokens[2]);
+        let field_index = fields
+            .into_iter()
+            .position(|x| x.name() == tokens[0]).unwrap();
 
-        for column in chunk.columns().iter() {
-            let int_array = match column.as_any().downcast_ref::<Int64Array>() {
-                Some(arr) => arr,
-                None => continue,
-            };
-            debug!("New column with len {}", int_array.len());
-            // println!("int_array={:#?}", int_array);
-
-            for i in 0..int_array.len() {
-                if i % 100000 == 0{
-                    debug!("New entry {}", i);
-                }
-                let value = int_array.value(i);
-                let x = value;
-                if !(GinExecutor::evaluate_filter(closure_string, value).unwrap()) {
-                    indexes.push(i);
+        let column = chunk.columns().clone().get(field_index).unwrap();
+        let int_array = match column.as_any().downcast_ref::<Int64Array>() {
+            Some(arr) => arr,
+            None => panic!(),
+        };
+        debug!("New column with len {}", int_array.len());
+        // println!("int_array={:#?}", int_array);
+        let mut result  = Vec::new();
+        for i in 0..int_array.len() {
+            if i % 1000000 == 0 {
+                debug!("Entry checkpoint {}", i);
+            }
+            let value = int_array.value(i);
+            // let x = value;
+            if !(GinExecutor::evaluate_filter(&tokens, value).unwrap()) {
+                // indexes.push(i);
+                match chunk.get(i){
+                    Some(a) => result.push(a.clone()),
+                    None => continue
                 }
             }
         }
-        debug!("1");
-        let unique_vec: Vec<_> = indexes
-            .into_iter()
-            .collect::<HashSet<_>>()
-            .into_iter()
-            .collect();
-        // println!("indexes={:?}", unique_vec);
-
-        // let columns = chunk.columns();
-        debug!("2");
-        let mut arrays = vec![];
-        for column in chunk.columns().iter() {
-            let int_array = column.as_any().downcast_ref::<Int64Array>().unwrap();
-            debug!("2.1");
-            let filtered = int_array
-                .iter()
-                .enumerate()
-                .filter(|(i, _)| !unique_vec.contains(&i))
-                .map(|(_, value)| value)
-                .collect::<Vec<_>>();
-            debug!("2.2");
-            let new: PrimitiveArray<i64> = filtered
-                .into_iter()
-                .map(|x| x.cloned())
-                .collect::<Vec<_>>()
-                .into();
-            let new2 = Box::new(new.clone()) as Box<dyn arrow2::array::Array>;
-            debug!("2.3");
-            arrays.push(new2);
-        }
-        debug!("3");
-
-        Ok(Chunk::new(arrays))
+        debug!("{}",result.len());
+        // Create ChunkB from the new arrays
+       
+        Ok(Chunk::new(result))
     }
 
     pub fn get_uri(&self) -> String {
@@ -233,7 +211,7 @@ impl GinExecutorService for GinExecutor {
         _request: Request<LaunchTaskRequest>,
     ) -> Result<Response<LaunchTaskResponse>, Status> {
         // self._launch_task(request).await
-        let mut result:f64 = -1.0;
+        let mut result: f64 = -1.0;
         info!("Task launched");
         let request = _request.get_ref().clone();
         let s3_conf = request.s3_conf.unwrap();
@@ -282,7 +260,11 @@ impl GinExecutorService for GinExecutor {
                     let mut _intermediate = Vec::new();
                     for chunk in step_input.into_iter() {
                         debug!("Processing new chunk");
-                        match GinExecutor::filter(&chunk, &_filter.predicate) {
+                        match GinExecutor::filter(
+                            &chunk,
+                            &_filter.predicate,
+                            metadata.schema().fields(),
+                        ) {
                             Ok(res) => {
                                 _intermediate.push(res);
                             }
@@ -290,6 +272,7 @@ impl GinExecutorService for GinExecutor {
                         }
                         stats_chunks_processed = stats_chunks_processed + 1;
                     }
+                    step_input = Vec::new();
                     step_input = _intermediate.clone();
                     stats_plan_processing_elapsed = stats_plan_processing_started.elapsed();
                 }
@@ -312,7 +295,7 @@ impl GinExecutorService for GinExecutor {
 
                     step_input = {
                         let mut input = Vec::new();
-                        
+
                         for elem in tmp_data {
                             let chunk = elem.unwrap();
                             // let field_len = &chunk.clone().columns().len();
@@ -324,40 +307,45 @@ impl GinExecutorService for GinExecutor {
                 }
 
                 StageType::Action(_action) => {
-                        let response_stage_type = match _action {
-                            0 => ActionType::Sum,
-                            1 => ActionType::Count,
-                            2 => ActionType::Collect,
-                            _ => {
-                                error!("Execute task failed: Invalid action type");
-                                continue;
-                            }
-                        };
-                        match response_stage_type {
-                            ActionType::Sum => {
-                                todo!();
-                            },
-                            ActionType::Count=>{
-                                let mut cross_chunk_result_vec = Vec::new();
-                                for chunk in step_input.clone().into_iter() {
-                                    cross_chunk_result_vec.push(GinExecutor::count(&chunk, &read::infer_schema(&metadata).unwrap()).unwrap());
-                                }
-                                let mut sum: usize = 0;
-                                for elem in cross_chunk_result_vec {
-                                    sum += elem;
-                                }
-                                result = sum as f64;
-                                // [TODO]
-                                // maybe have multiple returnable types?
-                            },
-                            ActionType::Collect =>{
-                                // [TODO]
-                                // maybe discuss the format of this?
-                                todo!()
-                            }
+                    let response_stage_type = match _action {
+                        0 => ActionType::Sum,
+                        1 => ActionType::Count,
+                        2 => ActionType::Collect,
+                        _ => {
+                            error!("Execute task failed: Invalid action type");
+                            continue;
                         }
+                    };
+                    match response_stage_type {
+                        ActionType::Sum => {
+                            todo!();
+                        }
+                        ActionType::Count => {
+                            let mut cross_chunk_result_vec = Vec::new();
+                            for chunk in step_input.clone().into_iter() {
+                                cross_chunk_result_vec.push(
+                                    GinExecutor::count(
+                                        &chunk,
+                                        &read::infer_schema(&metadata).unwrap(),
+                                    )
+                                    .unwrap(),
+                                );
+                            }
+                            let mut sum: usize = 0;
+                            for elem in cross_chunk_result_vec {
+                                sum += elem;
+                            }
+                            result = sum as f64;
+                            // [TODO]
+                            // maybe have multiple returnable types?
+                        }
+                        ActionType::Collect => {
+                            // [TODO]
+                            // maybe discuss the format of this?
+                            todo!()
+                        }
+                    }
                 }
-                
             }
             // debug!(
             //     "{} chunks processed in {:.2?} seconds",
