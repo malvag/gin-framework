@@ -11,7 +11,7 @@ use s3::{
 use range_reader::{ RangedAsyncReader, RangeOutput };
 
 use arrow2::{io::parquet::{
-    read::{self, RowGroupDeserializer, ColumnChunkMetaData},
+    read::{self, RowGroupDeserializer},
     write::{FileMetaData, ParquetType},
 }, datatypes::{Field, DataType}};
 

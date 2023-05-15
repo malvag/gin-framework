@@ -5,28 +5,19 @@ use crate::executor::proto::{
 };
 use crate::scheduler::proto::gin_scheduler_service_client::GinSchedulerServiceClient;
 use crate::scheduler::proto::{RegisterExecutorRequest, UnregisterExecutorRequest};
-use arrow2::io::parquet::read::{RowGroupDeserializer, RowGroupReader};
 use futures::executor::block_on;
 
 use log::{debug, error, info};
 
-use rand::seq::index;
 use tonic::{Request, Response, Status};
-use arrow2::array::{new_empty_array, BooleanArray};
 use crate::common::common::stage::StageType;
-use arrow2::array::{PrimitiveArray, MutableArray, Int64Vec};
-use arrow2::array::{Array, Int64Array};
-use arrow2::bitmap::Bitmap;
+use arrow2::array::{BooleanArray, Array, Int64Array};
 use arrow2::chunk::Chunk;
-use arrow2::datatypes::DataType;
-use arrow2::datatypes::SchemaRef;
-use arrow2::datatypes::{Field, Schema};
+use arrow2::datatypes::Schema;
 use arrow2::io::parquet::read;
-use arrow2::io::parquet::write::{FileMetaData, ParquetType};
+use arrow2::io::parquet::write::ParquetType;
 use arrow2::compute::filter::filter_chunk;
-use eval::eval;
-use eval::Value;
-use std::collections::HashSet;
+use eval::{eval, Value};
 use std::net::SocketAddr;
 use std::time::{Duration, Instant};
 #[derive(Debug)]

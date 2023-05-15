@@ -1,4 +1,3 @@
-
 use crate::scheduler::proto::SubmitJobRequest;
 use crate::common::common::{ActionType, Select, Stage, Filter};
 use crate::common::context::GinContext;

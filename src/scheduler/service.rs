@@ -2,13 +2,11 @@ use std::collections::HashMap;
 use std::sync::{Arc, Mutex};
 
 use crate::common::common::ActionType;
-// use
 use crate::executor::proto::gin_executor_service_client::GinExecutorServiceClient;
 use crate::executor::proto::{Empty, LaunchTaskRequest, LaunchTaskResponse};
 use crate::scheduler::proto::gin_scheduler_service_server::GinSchedulerService;
 use crate::scheduler::proto::CheckExecutorsRequest;
 use crate::scheduler::proto::CheckExecutorsResponse;
-// use futures::executor::block_on;
 use log::debug;
 use log::error;
 use log::info;

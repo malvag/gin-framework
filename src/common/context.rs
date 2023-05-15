@@ -1,19 +1,7 @@
-
-// mod executor;
-// mod scheduler;
-// use executor_proto;
 use futures::executor::block_on;
-// use dataframe::DataFrame;
-// use gin::executor::proto::gin_executor_service_client::GinExecutorServiceClient;
 use crate::scheduler::proto::gin_scheduler_service_client::GinSchedulerServiceClient;
-// use crate::scheduler::proto::CheckExecutorsRequest;
-// use scheduler::proto::Stage;
-// use gin::Job;
-// use dataframe::{Row, DataFrame,read_from_csv};
 
 use crate::common::common::S3Configuration;
-
-use log::error;
 pub struct GinContext {
     pub scheduler: GinSchedulerServiceClient<tonic::transport::Channel>,
     s3_config: Option<S3Configuration>,

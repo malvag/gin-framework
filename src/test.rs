@@ -1,16 +1,6 @@
-// mod executor;
-// mod scheduler;
-// use executor_proto;
-
-// use dataframe::DataFrame;
-// use gin::executor::proto::gin_executor_service_client::GinExecutorServiceClient;
 use gin::common::context::GinContext;
-// use scheduler::proto::Stage;
-// use gin::Job;
-
 use gin::common::dataframe::DataFrame;
 use gin::scheduler::proto::CheckExecutorsRequest;
-
 use gin::common::common::S3Configuration;
 
 
