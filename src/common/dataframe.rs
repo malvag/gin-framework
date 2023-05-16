@@ -38,38 +38,34 @@ impl<T: Debug + Clone> DataFrame<T> {
 
     //Action
     pub fn count(&mut self) -> f64 {
-        self.plan.push(Methods::Count);
-
         // call gRPC service
-        self.sync_send_execution_graph()
+        self.sync_send_execution_graph(Methods::Count)
     }
 
     //Action
     pub fn sum(&mut self) -> f64 {
-        self.plan.push(Methods::Sum);
-
         // call gRPC service
-        self.sync_send_execution_graph()
+        self.sync_send_execution_graph(Methods::Sum)
     }
 
     //Action
     pub fn collect(&mut self) -> &mut DataFrame<T> {
-        self.plan.push(Methods::Collect);
-
         // call gRPC service
-        self.sync_send_execution_graph();
+        self.sync_send_execution_graph(Methods::Collect);
 
         self
     }
 
     //Transformation
     pub fn select(&mut self, columns: Vec<String>) -> DataFrame<T> {
-        self.plan.push(Methods::Select(columns));
-
+        let action = Methods::Select(columns);
+        let mut plan = self.plan.clone();
+        plan.push(action);
+        
         DataFrame {
             uri: self.uri.to_owned(),
             data: self.data.clone(),
-            plan: self.plan.clone(),
+            plan,
         }
     }
 
@@ -77,19 +73,23 @@ impl<T: Debug + Clone> DataFrame<T> {
     pub fn filter(&mut self, condition: &str) -> DataFrame<T> {
 
         let action: Methods = Methods::Filter(condition.to_string());
-        self.plan.push(action);
+        let mut plan = self.plan.clone();
+        plan.push(action);
         
         DataFrame {
             uri: self.uri.to_owned(),
             data: self.data.clone(),
-            plan: self.plan.clone(),
+            plan,
         }
     }
 
-    fn sync_send_execution_graph(&mut self) -> f64{
+    fn sync_send_execution_graph(&mut self, action: Methods) -> f64{
+        let mut plan = self.plan.clone();
+        plan.push(action);
+
         let mut stage_vec: Vec<Stage> = Vec::new();
         let mut index = 0;
-        for node in self.plan.iter() {
+        for node in plan.iter() {
             let stage: Stage;
             match node {
                 Methods::Collect => {
