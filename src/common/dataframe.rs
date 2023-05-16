@@ -225,23 +225,3 @@ impl<T: Debug + Clone> DataFrame<T> {
         }
     }
 }
-
-pub fn read_from_csv<T: Debug>(url: &str) -> DataFrame<i32> {
-    println!("Reading from path: {}", url);
-    let row1 = Row {
-        cols: vec![1, 2, 3],
-    };
-    let row2 = Row {
-        cols: vec![4, 5, 6],
-    };
-    let row3 = Row {
-        cols: vec![7, 8, 9],
-    };
-    let data = vec![row1, row2, row3];
-    let plan = vec![];
-    DataFrame {
-        uri: url.to_owned(),
-        data,
-        plan,
-    }
-}

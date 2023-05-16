@@ -22,15 +22,13 @@ use std::net::SocketAddr;
 use std::time::{Duration, Instant};
 #[derive(Debug)]
 pub struct GinExecutor {
-    id: i32,
     address: SocketAddr,
     scheduler_address: SocketAddr,
 }
 
 impl GinExecutor {
-    pub fn new(id: i32, addr: SocketAddr, scheduler: SocketAddr) -> Self {
+    pub fn new(addr: SocketAddr, scheduler: SocketAddr) -> Self {
         let ob = Self {
-            id: id,
             address: addr,
             scheduler_address: scheduler,
         };
@@ -73,9 +71,10 @@ impl GinExecutor {
         Ok(sum)
     }
 
+    // NOTE: consider remove _schema
     fn count(
         chunk: &Chunk<Box<dyn Array>>,
-        schema: &Schema,
+        _schema: &Schema,
     ) -> Result<usize, Box<dyn std::error::Error>> {
         let arrays = chunk.columns();
         if arrays.len() != 0 {
@@ -84,10 +83,11 @@ impl GinExecutor {
             Ok(0)
         }
     }
-    
+
+    // NOTE: consider remove _schema
     fn width(
         chunk: &Chunk<Box<dyn Array>>,
-        schema: &Schema,
+        _schema: &Schema,
     ) -> Result<usize, Box<dyn std::error::Error>> {
         // Note: Option 1:
         Ok(chunk.columns().len())

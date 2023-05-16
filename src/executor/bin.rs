@@ -17,7 +17,6 @@ async fn main() -> Result<(), Box<dyn std::error::Error>> {
     let scheduler_socket = scheduler.to_socket_addrs().unwrap().next().unwrap();
     info!("Executor started");
     let _executor = GinExecutor::new(
-        1,
         executor_socket,
         scheduler_socket
     );
