@@ -6,6 +6,7 @@ enum ActionType {
     Sum = 0;
     Count = 1;
     Collect = 2;
+    Width = 3;
 }
 
 message Stage {

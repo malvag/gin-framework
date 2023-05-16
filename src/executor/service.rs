@@ -84,6 +84,16 @@ impl GinExecutor {
             Ok(0)
         }
     }
+    
+    fn width(
+        chunk: &Chunk<Box<dyn Array>>,
+        schema: &Schema,
+    ) -> Result<usize, Box<dyn std::error::Error>> {
+        // Note: Option 1:
+        Ok(chunk.columns().len())
+        // Note: Option 2:
+        // Ok(schema.fields.len())
+    }
 
     fn evaluate_filter(
         tokens: &Vec<&str>,
@@ -263,7 +273,6 @@ impl GinExecutorService for GinExecutor {
                     step_input = _intermediate.clone();
                     _stats_plan_processing_elapsed = _stats_plan_processing_started.elapsed();
                 }
-
                 StageType::Select(_columns) => {
                     let mut field_list = Vec::new();
                     for f in _columns.columns {
@@ -298,6 +307,7 @@ impl GinExecutorService for GinExecutor {
                         0 => ActionType::Sum,
                         1 => ActionType::Count,
                         2 => ActionType::Collect,
+                        3 => ActionType::Width,
                         _ => {
                             error!("Execute task failed: Invalid action type");
                             continue;
@@ -340,8 +350,23 @@ impl GinExecutorService for GinExecutor {
                                 sum += elem;
                             }
                             result = sum as f64;
-                            // [TODO]
-                            // maybe have multiple returnable types?
+                        }
+                        ActionType::Width => {
+                            let mut cross_chunk_result_vec = Vec::new();
+                            for chunk in step_input.clone().into_iter() {
+                                cross_chunk_result_vec.push(
+                                    GinExecutor::width(
+                                        &chunk,
+                                        &read::infer_schema(&metadata).unwrap(),
+                                    )
+                                    .unwrap(),
+                                );
+                            }
+                            let mut sum: usize = 0;
+                            for elem in cross_chunk_result_vec {
+                                sum += elem;
+                            }
+                            result = sum as f64;
                         }
                         ActionType::Collect => {
                             // [TODO]

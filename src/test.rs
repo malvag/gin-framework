@@ -31,6 +31,13 @@ async fn main() -> Result<(), Box<dyn std::error::Error>> {
 
     // df.sum();
     // println!("Plan after sum call: {:?}", df.plan);
+    println!("Gin Calculating: df.width()");
+    
+    let result = df.width();
+
+    println!("{} (should be 19)", result);
+
+
     println!("Gin Calculating: df.filter('VendorID == 0').count()");
     
     let result = df.filter("VendorID == 0").count();

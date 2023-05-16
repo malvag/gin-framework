@@ -22,7 +22,7 @@ pub enum Methods {
     Count,
     Collect,
     Sum(String),
-    Filter(String),
+    Width,
 }
 
 #[derive(Clone)]
@@ -59,6 +59,11 @@ impl<T: Debug + Clone> DataFrame<T> {
         self
     }
 
+    //Action: Get the number of columns
+    pub fn width(&mut self) -> usize {
+        // call gRPC service
+        self.sync_send_execution_graph(Methods::Width) as usize
+    }
 
     //Transformation: Select columns
     pub fn select(&mut self, columns: Vec<String>) -> DataFrame<T> {
@@ -128,6 +133,17 @@ impl<T: Debug + Clone> DataFrame<T> {
                         })),
                     };
                 }
+                Methods::Width => {
+                    debug!("Methods:Width");
+                    stage = Stage {
+                        id: index.to_owned().to_string(),
+                        stage_type: Some(StageType::Action(
+                            ActionType::Width.into()
+                        )),
+                        action_field: None,
+                    }
+
+                }
                 Methods::Filter(_func) => {
                     debug!("Methods:Filter");
                     stage = Stage {
@@ -176,20 +192,21 @@ impl<T: Debug + Clone> DataFrame<T> {
                             0 => ActionType::Sum,
                             1 => ActionType::Count,
                             2 => ActionType::Collect,
+                            3 => ActionType::Width,
                             _ => {
                                 error!("Submit Job failed: Invalid action type");
                                 return -1.0;
                             }
                         };
                         match response_stage_type {
-                            ActionType::Sum | ActionType::Count=>{
+                            ActionType::Sum | ActionType::Count | ActionType::Width => {
                                 let arr: [u8; 8] = response.into_inner().result.try_into().unwrap();
                                 let result: f64 = f64::from_le_bytes(arr); 
                                 // [TODO]
                                 // maybe have multiple returnable types?
                                 return result;
                             },
-                            ActionType::Collect =>{
+                            ActionType::Collect => {
                                 // [TODO]
                                 // maybe discuss the format of this?
                                 todo!()

@@ -190,12 +190,13 @@ impl Scheduler {
                     0 => ActionType::Sum,
                     1 => ActionType::Count,
                     2 => ActionType::Collect,
+                    3 => ActionType::Width,
                     _ => {
                         return Err(Status::aborted("Could not evaluate action stage after execution. Corrupted state?"));
                     }
                 };
                 match req_to_client_stage_type {
-                    ActionType::Sum | ActionType::Count=>{
+                    ActionType::Sum | ActionType::Count | ActionType::Width => {
                         // deserialize the result from every thread
                         let mut aggregated: Vec<Vec<u8>> = Vec::new();
                         for thread_result in results {

@@ -63,6 +63,7 @@ pub enum ActionType {
     Sum = 0,
     Count = 1,
     Collect = 2,
+    Width = 3,
 }
 impl ActionType {
     /// String value of the enum field names used in the ProtoBuf definition.
@@ -74,6 +75,7 @@ impl ActionType {
             ActionType::Sum => "Sum",
             ActionType::Count => "Count",
             ActionType::Collect => "Collect",
+            ActionType::Width => "Width",
         }
     }
     /// Creates an enum from field names used in the ProtoBuf definition.
@@ -82,6 +84,7 @@ impl ActionType {
             "Sum" => Some(Self::Sum),
             "Count" => Some(Self::Count),
             "Collect" => Some(Self::Collect),
+            "Width" => Some(Self::Width),
             _ => None,
         }
     }
