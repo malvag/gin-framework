@@ -1,8 +1,8 @@
 use crate::scheduler::proto::SubmitJobRequest;
-use crate::common::common::{ActionType, Select, Stage, Filter};
+use crate::common::common::{ActionType, Select, Stage, Filter, SumCol};
 use crate::common::context::GinContext;
 use log::{debug, error};
-use crate::common::common::stage::StageType;
+use crate::common::common::stage::{ StageType, ActionField };
 
 use std::fmt::Debug;
 use futures::executor::block_on;
@@ -18,7 +18,7 @@ pub enum Methods {
     Select(Vec<String>),
     Count,
     Collect,
-    Sum,
+    Sum(String),
     Filter(String),
 }
 
@@ -43,9 +43,9 @@ impl<T: Debug + Clone> DataFrame<T> {
     }
 
     //Action
-    pub fn sum(&mut self) -> f64 {
+    pub fn sum(&mut self, sum_col: &str) -> f64 {
         // call gRPC service
-        self.sync_send_execution_graph(Methods::Sum)
+        self.sync_send_execution_graph(Methods::Sum(sum_col.to_string()))
     }
 
     //Action
@@ -99,6 +99,7 @@ impl<T: Debug + Clone> DataFrame<T> {
                         stage_type: Some(StageType::Action(
                             ActionType::Collect.into(),
                         )),
+                        action_field: None,
                     };
                 }
                 Methods::Count => {
@@ -108,15 +109,19 @@ impl<T: Debug + Clone> DataFrame<T> {
                         stage_type: Some(StageType::Action(
                             ActionType::Count.into(),
                         )),
+                        action_field: None,
                     };
                 }
-                Methods::Sum => {
+                Methods::Sum(sum_col) => {
                     debug!("Methods:Sum");
                     stage = Stage {
                         id: index.to_owned().to_string(),
                         stage_type: Some(StageType::Action(
                             ActionType::Sum.into(),
                         )),
+                        action_field: Some(ActionField::SumCol(SumCol {
+                            field_name: sum_col.to_string() 
+                        })),
                     };
                 }
                 Methods::Filter(_func) => {
@@ -126,6 +131,7 @@ impl<T: Debug + Clone> DataFrame<T> {
                         stage_type: Some(StageType::Filter(Filter {
                             predicate: _func.to_owned(),
                         })),
+                        action_field: None,
                     };
                 }
                 Methods::Select(select_vec) => {
@@ -135,6 +141,7 @@ impl<T: Debug + Clone> DataFrame<T> {
                         stage_type: Some(StageType::Select(Select {
                             columns: select_vec.clone(),
                         })),
+                        action_field: None,
                     };
                 }
             }

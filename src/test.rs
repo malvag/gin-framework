@@ -37,17 +37,26 @@ async fn main() -> Result<(), Box<dyn std::error::Error>> {
 
     println!("{} (should be 0)",result);
 
+
     println!("Gin Calculating: df.filter('VendorID == 1').count()");
     
     let result = df.filter("VendorID == 1").count();
 
     println!("{} (should be 827367)",result);
 
+
     println!("Gin Calculating: df.filter('VendorID == 2').count()");
     
     let result = df.filter("VendorID == 2").count();
 
     println!("{} (should be 2239399)",result);
+
+
+    println!("Gin Calculating: df.filter('VendorID == 2').sum('VendorID')");
+    
+    let result = df.filter("VendorID == 2").sum("VendorID");
+
+    println!("{} (should be 4478798)",result);
 
 
     // println!("Plan after filter call: {:?}", df.plan);

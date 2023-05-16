@@ -15,6 +15,9 @@ message Stage {
         Select select = 3;
         ActionType action = 4;
     }
+    oneof action_field {
+        SumCol sum_col = 5;
+    }
     // repeated string dependencies = 7;
 }
 
@@ -31,4 +34,8 @@ message Filter {
 
 message Select {
     repeated string columns = 1;
+}
+
+message SumCol {
+    string field_name = 1;
 }

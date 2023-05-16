@@ -5,6 +5,8 @@ pub struct Stage {
     pub id: ::prost::alloc::string::String,
     #[prost(oneof = "stage::StageType", tags = "2, 3, 4")]
     pub stage_type: ::core::option::Option<stage::StageType>,
+    #[prost(oneof = "stage::ActionField", tags = "5")]
+    pub action_field: ::core::option::Option<stage::ActionField>,
 }
 /// Nested message and enum types in `Stage`.
 pub mod stage {
@@ -17,6 +19,12 @@ pub mod stage {
         Select(super::Select),
         #[prost(enumeration = "super::ActionType", tag = "4")]
         Action(i32),
+    }
+    #[allow(clippy::derive_partial_eq_without_eq)]
+    #[derive(Clone, PartialEq, ::prost::Oneof)]
+    pub enum ActionField {
+        #[prost(message, tag = "5")]
+        SumCol(super::SumCol),
     }
 }
 #[allow(clippy::derive_partial_eq_without_eq)]
@@ -42,6 +50,12 @@ pub struct Filter {
 pub struct Select {
     #[prost(string, repeated, tag = "1")]
     pub columns: ::prost::alloc::vec::Vec<::prost::alloc::string::String>,
+}
+#[allow(clippy::derive_partial_eq_without_eq)]
+#[derive(Clone, PartialEq, ::prost::Message)]
+pub struct SumCol {
+    #[prost(string, tag = "1")]
+    pub field_name: ::prost::alloc::string::String,
 }
 #[derive(Clone, Copy, Debug, PartialEq, Eq, Hash, PartialOrd, Ord, ::prost::Enumeration)]
 #[repr(i32)]

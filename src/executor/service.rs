@@ -10,7 +10,7 @@ use futures::executor::block_on;
 use log::{debug, error, info};
 
 use tonic::{Request, Response, Status};
-use crate::common::common::stage::StageType;
+use crate::common::common::stage::{StageType, ActionField};
 use arrow2::array::{BooleanArray, Array, Int64Array};
 use arrow2::chunk::Chunk;
 use arrow2::datatypes::Schema;
@@ -63,12 +63,12 @@ impl GinExecutor {
             .fields
             .iter()
             .position(|field| field.name == field_name)
-            .ok_or("error")?;
+            .ok_or(format!("field {field_name} not found."))?;
         // println!("Index of field '{}' is {}", field_name, index);
         let array = chunk.columns()[index]
             .as_any()
             .downcast_ref::<Int64Array>()
-            .ok_or("error")?;
+            .ok_or(format!("field {field_name} is not number."))?;
         let sum: i64 = array.iter().flatten().sum();
         Ok(sum)
     }
@@ -305,7 +305,24 @@ impl GinExecutorService for GinExecutor {
                     };
                     match response_stage_type {
                         ActionType::Sum => {
-                            todo!();
+                            let ActionField::SumCol(sum_col) = plan_step.action_field.unwrap();
+                            let field_name = &sum_col.field_name;
+                            let mut cross_chunk_result_vec = Vec::new();
+                            for chunk in step_input.clone().into_iter() {
+                                cross_chunk_result_vec.push(
+                                    GinExecutor::sum(
+                                        &chunk,
+                                        &read::infer_schema(&metadata).unwrap(),
+                                        field_name,
+                                    )
+                                    .unwrap(),
+                                );
+                            }
+                            let mut sum = 0;
+                            for elem in cross_chunk_result_vec {
+                                sum += elem ;
+                            }
+                            result = sum as f64;
                         }
                         ActionType::Count => {
                             let mut cross_chunk_result_vec = Vec::new();
