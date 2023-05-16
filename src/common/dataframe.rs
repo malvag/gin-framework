@@ -15,7 +15,10 @@ pub struct DataFrame<T> {
 
 #[derive(Clone)]
 pub enum Methods {
+    // Transformations
+    Filter(String),
     Select(Vec<String>),
+    // Actions
     Count,
     Collect,
     Sum(String),
@@ -36,19 +39,19 @@ impl<T: Debug + Clone> DataFrame<T> {
         }
     }
 
-    //Action
+    //Action: Count the number of rows.
     pub fn count(&mut self) -> f64 {
         // call gRPC service
         self.sync_send_execution_graph(Methods::Count)
     }
 
-    //Action
+    //Action: Sum of the values of the specified column.
     pub fn sum(&mut self, sum_col: &str) -> f64 {
         // call gRPC service
         self.sync_send_execution_graph(Methods::Sum(sum_col.to_string()))
     }
 
-    //Action
+    //Action: todo
     pub fn collect(&mut self) -> &mut DataFrame<T> {
         // call gRPC service
         self.sync_send_execution_graph(Methods::Collect);
@@ -56,7 +59,8 @@ impl<T: Debug + Clone> DataFrame<T> {
         self
     }
 
-    //Transformation
+
+    //Transformation: Select columns
     pub fn select(&mut self, columns: Vec<String>) -> DataFrame<T> {
         let action = Methods::Select(columns);
         let mut plan = self.plan.clone();
@@ -69,7 +73,7 @@ impl<T: Debug + Clone> DataFrame<T> {
         }
     }
 
-    //Transformation
+    //Transformation: Filter the rows based on a condition.
     pub fn filter(&mut self, condition: &str) -> DataFrame<T> {
 
         let action: Methods = Methods::Filter(condition.to_string());
@@ -83,7 +87,7 @@ impl<T: Debug + Clone> DataFrame<T> {
         }
     }
 
-    fn sync_send_execution_graph(&mut self, action: Methods) -> f64{
+    fn sync_send_execution_graph(&mut self, action: Methods) -> f64 {
         let mut plan = self.plan.clone();
         plan.push(action);
 
