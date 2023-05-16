@@ -352,21 +352,12 @@ impl GinExecutorService for GinExecutor {
                             result = sum as f64;
                         }
                         ActionType::Width => {
-                            let mut cross_chunk_result_vec = Vec::new();
-                            for chunk in step_input.clone().into_iter() {
-                                cross_chunk_result_vec.push(
-                                    GinExecutor::width(
-                                        &chunk,
-                                        &read::infer_schema(&metadata).unwrap(),
-                                    )
-                                    .unwrap(),
-                                );
-                            }
-                            let mut sum: usize = 0;
-                            for elem in cross_chunk_result_vec {
-                                sum += elem;
-                            }
-                            result = sum as f64;
+                            let chunk = step_input.clone().into_iter().next().unwrap();
+
+                            result = GinExecutor::width(
+                                &chunk,
+                                &read::infer_schema(&metadata).unwrap(),
+                            ).unwrap() as f64;
                         }
                         ActionType::Collect => {
                             // [TODO]

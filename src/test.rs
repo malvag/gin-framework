@@ -9,8 +9,8 @@ async fn main() -> Result<(), Box<dyn std::error::Error>> {
     let s3_conf = S3Configuration {
         region: "".to_string(),
         endpoint: "http://localhost:9000".to_string(),
-        access_key: "1JeWf0EmWzZboFDa".to_string(),
-        secret_key: "zjRu7hw9YkWucT9jyxzXgIYWC906euFs".to_string(),
+        access_key: "test-access-key".to_string(),
+        secret_key: "test-secret-key".to_string(),
     };
     let gtx = GinContext::get_instance().with_s3(s3_conf);
     let response = gtx
@@ -21,7 +21,7 @@ async fn main() -> Result<(), Box<dyn std::error::Error>> {
 
     let mut df:DataFrame<f64> = DataFrame::new();
 
-    df.uri = "s3://test-rust-s3/yellow_tripdata_2023-01.parquet".to_owned();  
+    df.uri = "s3://test-rust-s3/new.parquet".to_owned();  
 
     println!("Response: {:?}", response.get_ref().executor_status);
     

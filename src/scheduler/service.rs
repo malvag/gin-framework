@@ -196,7 +196,7 @@ impl Scheduler {
                     }
                 };
                 match req_to_client_stage_type {
-                    ActionType::Sum | ActionType::Count | ActionType::Width => {
+                    ActionType::Sum | ActionType::Count => {
                         // deserialize the result from every thread
                         let mut aggregated: Vec<Vec<u8>> = Vec::new();
                         for thread_result in results {
@@ -222,6 +222,21 @@ impl Scheduler {
                             result: serialized.to_vec()
                         };
                         return Ok(Response::new(response));
+                    },
+                    ActionType::Width => {
+                        let thread_result = match results.into_iter().next().unwrap() {
+                            Ok(result) => result.result,
+                            Err(_) => {return Err(Status::aborted("Could not evaluate result from thread. Corrupted state?"));}
+                        };
+                        let result: f64 = serde_cbor::from_slice(&thread_result).unwrap();
+                        let serialized = result.to_le_bytes();
+
+                        let response = SubmitJobResponse {
+                            success: true,
+                            result: serialized.to_vec()
+                        };
+                        return Ok(Response::new(response));
+
                     },
                     ActionType::Collect =>{
                         // [TODO]
