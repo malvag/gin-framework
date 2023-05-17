@@ -269,32 +269,6 @@ impl GinExecutorService for GinExecutor {
                 StageType::Select(_columns) => {
                     let field_names = _columns.columns;
                     schema = GinExecutor::select(&schema, &field_names)
-                    // let mut field_list = Vec::new();
-                    // for f in _columns.columns {
-                    //     field_list = metadata
-                    //         .schema()
-                    //         .fields()
-                    //         .iter()
-                    //         .filter(|item| item.name() == f)
-                    //         .map(|item| ParquetReader::convert_parquet_to_arrow(item))
-                    //         .collect();
-                    // }
-                    // let tmp_data = parquet_reader
-                    //     .read_row_group_deser(index as usize, Some(field_list))
-                    //     .await
-                    //     .unwrap();
-
-                    // step_input = {
-                    //     let mut input = Vec::new();
-
-                    //     for elem in tmp_data {
-                    //         let chunk = elem.unwrap();
-                    //         // let field_len = &chunk.clone().columns().len();
-                    //         // debug!("selected ... and now the input has {} columns",field_len );
-                    //         input.push(chunk)
-                    //     }
-                    //     input
-                    // };
                 }
 
                 StageType::Action(_action) => {
