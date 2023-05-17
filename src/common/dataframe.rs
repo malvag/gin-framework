@@ -39,6 +39,14 @@ impl<T: Debug + Clone> DataFrame<T> {
         }
     }
 
+    pub fn read_from(uri: &str) -> Self {
+        Self {
+            uri: uri.to_owned(),
+            data: Vec::new(),
+            plan: Vec::new(),
+        }
+    }
+
     //Action: Count the number of rows.
     pub fn count(&mut self) -> f64 {
         // call gRPC service

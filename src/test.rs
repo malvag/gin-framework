@@ -18,9 +18,7 @@ async fn main() -> Result<(), Box<dyn std::error::Error>> {
         .check_executors(CheckExecutorsRequest {})
         .await?;
 
-    let mut df:DataFrame<f64> = DataFrame::new();
-
-    df.uri = "s3://test-rust-s3/new.parquet".to_owned();  
+    let mut df: DataFrame<f64> = DataFrame::read_from("s3://test-rust-s3/new.parquet"); 
 
     println!("Response: {:?}", response.get_ref().executor_status);
 
