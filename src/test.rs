@@ -12,7 +12,7 @@ async fn main() -> Result<(), Box<dyn std::error::Error>> {
         access_key: "test-access-key".to_string(),
         secret_key: "test-secret-key".to_string(),
     };
-    let gtx = GinContext::get_instance().with_s3(s3_conf);
+    let gtx = GinContext::get_context("http://127.0.0.1:50051").with_s3(s3_conf);
     let response = gtx
         .scheduler
         .check_executors(CheckExecutorsRequest {})

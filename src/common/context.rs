@@ -10,12 +10,12 @@ pub struct GinContext {
 
 impl GinContext {
     //singleton instance
-    pub fn get_instance() -> &'static mut Self {
+    pub fn get_context(end_point: &str) -> &'static mut Self {
         static mut INSTANCE: *mut GinContext = std::ptr::null_mut();
         static ONCE: std::sync::Once = std::sync::Once::new();
-        ONCE.call_once(|| unsafe {
+        ONCE.call_once(move || unsafe {
             let sched_result =
-                block_on(GinSchedulerServiceClient::connect("http://127.0.0.1:50051"));
+                block_on(GinSchedulerServiceClient::connect(end_point.to_owned()));
             match sched_result {
                 Ok(scheduler) => {
                     INSTANCE = Box::into_raw(Box::new(GinContext {

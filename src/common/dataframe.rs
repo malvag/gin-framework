@@ -177,7 +177,7 @@ impl<T: Debug + Clone> DataFrame<T> {
             stage_vec.push(stage);
             index += 1;
         }
-        let gtx = GinContext::get_instance();
+        let gtx = GinContext::get_context("http://127.0.0.1:50051");
         let stage_vec_clone = stage_vec.clone();
         //send execution graph to scheduler
         let request = SubmitJobRequest {
@@ -185,7 +185,7 @@ impl<T: Debug + Clone> DataFrame<T> {
             plan: stage_vec,
             s3_conf: Some(gtx.get_s3_config()),
         };
-        match block_on(GinContext::get_instance().scheduler.submit_job(request)) {
+        match block_on(GinContext::get_context("http://127.0.0.1:50051").scheduler.submit_job(request)) {
             Ok(response) => {
                 debug!("Success");
                 let action_stage = match stage_vec_clone.last() {
