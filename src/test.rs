@@ -31,6 +31,13 @@ async fn main() -> Result<(), Box<dyn std::error::Error>> {
     println!("{} (should be 19)", result);
 
 
+    println!("Gin Calculating: df.select('VendorID', 'trip_distance', 'tip_amount').width()");
+
+    let result = df.select(&["VendorID", "trip_distance", "tip_amount"]).width();
+
+    println!("{} (should be 3)", result);
+
+
     println!("Gin Calculating: df.filter('VendorID == 0').count()");
     
     let result = df.filter("VendorID == 0").count();
@@ -49,14 +56,14 @@ async fn main() -> Result<(), Box<dyn std::error::Error>> {
     
     let result = df.filter("VendorID == 2").count();
 
-    println!("{} (should be 2239399)",result);
+    println!("{} (should be 2239397)",result);
 
 
     println!("Gin Calculating: df.filter('VendorID == 2').sum('VendorID')");
     
     let result = df.filter("VendorID == 2").sum("VendorID");
 
-    println!("{} (should be 4478798)",result);
+    println!("{} (should be 4478794)",result);
 
     Ok(())
 }

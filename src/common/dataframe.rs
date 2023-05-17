@@ -66,11 +66,12 @@ impl<T: Debug + Clone> DataFrame<T> {
     }
 
     //Transformation: Select columns
-    pub fn select(&mut self, columns: Vec<String>) -> DataFrame<T> {
-        let action = Methods::Select(columns);
+    pub fn select(&mut self, columns: &[&str]) -> DataFrame<T> {
+        let col_vect = columns.into_iter().map(|&s| String::from(s)).collect();
+        let action = Methods::Select(col_vect);
         let mut plan = self.plan.clone();
         plan.push(action);
-        
+
         DataFrame {
             uri: self.uri.to_owned(),
             data: self.data.clone(),

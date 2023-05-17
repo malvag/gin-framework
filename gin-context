@@ -13,7 +13,7 @@ usage() {
 case "$1" in
 'start')
     # Start Gin Scheduler
-    cargo run --quiet --bin scheduler 2>/dev/null &
+    cargo run --quiet --bin scheduler &
 
     while ! pgrep scheduler >/dev/null; do
         echo "Waiting for scheduler to start..."
@@ -24,14 +24,14 @@ case "$1" in
     excs=${2:-1}
     for ((i = 0; i < $excs; i++)); do
         (( port = executor_port_start + i))
-        cargo run --quiet --bin executor -- 127.0.0.1:$port $SCHEDULER_ENDPOINT 2>/dev/null &
+        cargo run --quiet --bin executor -- 127.0.0.1:$port $SCHEDULER_ENDPOINT &
     done
 
     printf "Welcome to $NAME_ICON\n"
     printf "Gin Context available at http://$SCHEDULER_ENDPOINT\n"
     ;;
 'stop')
-    pkill scheduler && pkill executor
+    pkill executor && sleep 1 && pkill scheduler
     printf "$NAME_ICON has stopped.\n"
     ;;
 *)

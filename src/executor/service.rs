@@ -36,21 +36,12 @@ impl GinExecutor {
         ob
     }
 
-    // fn select(reader , field_names: &[&str]) -> Schema {
-    //     // TODO: use filter from Schema implementation
+    fn select(schema: &Schema, field_names: &[String]) -> Schema {
+        schema.clone().filter(|_, f| {
+            field_names.contains(&f.name)
+        })
+    }
 
-    //     let fields: Vec<Field> = schema
-    //         .fields
-    //         .iter()
-    //         .filter(|field| field_names.contains(&&*field.name))
-    //         .cloned()
-    //         .collect();
-    //     return Schema {
-    //         fields,
-    //         metadata: schema.metadata.clone(),
-    //     };
-    // }
-    // chunks: read::RowGroupDeserializer,
     fn sum(
         chunk: &Chunk<Box<dyn Array>>,
         schema: &Schema,
@@ -68,6 +59,9 @@ impl GinExecutor {
             .downcast_ref::<Int64Array>()
             .ok_or(format!("field {field_name} is not number."))?;
         let sum: i64 = array.iter().flatten().sum();
+
+        debug!("[sum] result: {}", sum);
+        
         Ok(sum)
     }
 
@@ -78,21 +72,19 @@ impl GinExecutor {
     ) -> Result<usize, Box<dyn std::error::Error>> {
         let arrays = chunk.columns();
         if arrays.len() != 0 {
+            debug!("[count] result: {}", arrays[0].len());
             Ok(arrays[0].len())
         } else {
             Ok(0)
         }
     }
 
-    // NOTE: consider remove _schema
     fn width(
-        chunk: &Chunk<Box<dyn Array>>,
-        _schema: &Schema,
+        _chunk: &Chunk<Box<dyn Array>>,
+        schema: &Schema,
     ) -> Result<usize, Box<dyn std::error::Error>> {
-        // Note: Option 1:
-        Ok(chunk.columns().len())
-        // Note: Option 2:
-        // Ok(schema.fields.len())
+        debug!("[width] result: {}", schema.fields.len());
+        Ok(schema.fields.len())
     }
 
     fn evaluate_filter(
@@ -224,6 +216,7 @@ impl GinExecutorService for GinExecutor {
             Ok(meta) => meta,
             _ => panic!(),
         };
+        let mut schema = read::infer_schema(&metadata).unwrap();
         // for field in metadata.schema().fields() {
         //     debug!("{}", field.name());
         // }
@@ -274,32 +267,34 @@ impl GinExecutorService for GinExecutor {
                     _stats_plan_processing_elapsed = _stats_plan_processing_started.elapsed();
                 }
                 StageType::Select(_columns) => {
-                    let mut field_list = Vec::new();
-                    for f in _columns.columns {
-                        field_list = metadata
-                            .schema()
-                            .fields()
-                            .iter()
-                            .filter(|item| item.name() == f)
-                            .map(|item| ParquetReader::convert_parquet_to_arrow(item))
-                            .collect();
-                    }
-                    let tmp_data = parquet_reader
-                        .read_row_group_deser(index as usize, Some(field_list))
-                        .await
-                        .unwrap();
+                    let field_names = _columns.columns;
+                    schema = GinExecutor::select(&schema, &field_names)
+                    // let mut field_list = Vec::new();
+                    // for f in _columns.columns {
+                    //     field_list = metadata
+                    //         .schema()
+                    //         .fields()
+                    //         .iter()
+                    //         .filter(|item| item.name() == f)
+                    //         .map(|item| ParquetReader::convert_parquet_to_arrow(item))
+                    //         .collect();
+                    // }
+                    // let tmp_data = parquet_reader
+                    //     .read_row_group_deser(index as usize, Some(field_list))
+                    //     .await
+                    //     .unwrap();
 
-                    step_input = {
-                        let mut input = Vec::new();
+                    // step_input = {
+                    //     let mut input = Vec::new();
 
-                        for elem in tmp_data {
-                            let chunk = elem.unwrap();
-                            // let field_len = &chunk.clone().columns().len();
-                            // debug!("selected ... and now the input has {} columns",field_len );
-                            input.push(chunk)
-                        }
-                        input
-                    };
+                    //     for elem in tmp_data {
+                    //         let chunk = elem.unwrap();
+                    //         // let field_len = &chunk.clone().columns().len();
+                    //         // debug!("selected ... and now the input has {} columns",field_len );
+                    //         input.push(chunk)
+                    //     }
+                    //     input
+                    // };
                 }
 
                 StageType::Action(_action) => {
@@ -322,7 +317,7 @@ impl GinExecutorService for GinExecutor {
                                 cross_chunk_result_vec.push(
                                     GinExecutor::sum(
                                         &chunk,
-                                        &read::infer_schema(&metadata).unwrap(),
+                                        &schema,
                                         field_name,
                                     )
                                     .unwrap(),
@@ -340,7 +335,7 @@ impl GinExecutorService for GinExecutor {
                                 cross_chunk_result_vec.push(
                                     GinExecutor::count(
                                         &chunk,
-                                        &read::infer_schema(&metadata).unwrap(),
+                                        &schema,
                                     )
                                     .unwrap(),
                                 );
@@ -356,7 +351,7 @@ impl GinExecutorService for GinExecutor {
 
                             result = GinExecutor::width(
                                 &chunk,
-                                &read::infer_schema(&metadata).unwrap(),
+                                &schema,
                             ).unwrap() as f64;
                         }
                         ActionType::Collect => {
