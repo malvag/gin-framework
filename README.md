@@ -1,6 +1,6 @@
 #  Gin - A Distributed Data Processing Framework
 
-Gin is a Distributed Data Processing Framework implemented in Rust, offering a DataFrame interface for processing Parquet files. Gin Library provides an API that allows `reading` Parquet files from S3 into a Dataframe and lazily run the transformations on it which are then triggered by actions.
+Gin is a Distributed Data Processing Framework implemented in Rust. It offers a DataFrame interface for processing Parquet files. Gin Library provides an API that allows `reading` Parquet files from S3 into a Dataframe and lazily run the transformations on it which are then triggered by actions.
 
 Gin currently supports:
 
