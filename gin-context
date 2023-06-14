@@ -13,7 +13,7 @@ usage() {
 case "$1" in
 'start')
     # Start Gin Scheduler
-    cargo run --quiet --bin scheduler &
+    cargo run --release --quiet --bin scheduler &
 
     while ! pgrep scheduler >/dev/null; do
         echo "Waiting for scheduler to start..."
@@ -24,7 +24,7 @@ case "$1" in
     excs=${2:-1}
     for ((i = 0; i < $excs; i++)); do
         (( port = executor_port_start + i))
-        cargo run --quiet --bin executor -- 127.0.0.1:$port $SCHEDULER_ENDPOINT &
+        cargo run --release --quiet --bin executor -- 127.0.0.1:$port $SCHEDULER_ENDPOINT &
     done
 
     printf "Welcome to $NAME_ICON\n"

@@ -23,7 +23,7 @@ $ apt install -y protobuf-compiler
 ```
 $ git clone https://github.com/malvag/gin-framework.git
 $ cd gin-framework
-$ cargo build
+$ cargo build --release
 ```
 
 ## Run Gin
@@ -39,7 +39,7 @@ Run the test client.
 Note: You should change the S3 Credentials first and set up the bucket. We used MinIO for simplicity.
 
 ```
-$ cargo run
+$ cargo run --release
 ```
 
 Stop the cluster.
